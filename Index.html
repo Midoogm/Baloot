@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Baloot Pro Tracker - بلوت برو</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #020617);
+            color: #f8fafc;
+            min-height: 100vh;
+            touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        .gold-text {
+            background: linear-gradient(to right, #fbbf24, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-press {
+            transition: transform 0.1s;
+        }
+        .btn-press:active {
+            transform: scale(0.95);
+        }
+        /* Progress Bar Animation */
+        .progress-bar {
+            transition: width 0.5s ease-out;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const SakahLimit = 152;
+
+        const App = () => {
+            const [history, setHistory] = useState([]);
+            const [keypadOpen, setKeypadOpen] = useState(null); // 'lana' | 'lahoma' | null
+            const [inputValue, setInputValue] = useState("");
+            const [isListening, setIsListening] = useState(false);
+            const [voiceFeedback, setVoiceFeedback] = useState("");
+            
+            const recognitionRef = useRef(null);
+
+            // Load history on mount
+            useEffect(() => {
+                const saved = localStorage.getItem('balootProHistory');
+                if (saved) {
+                    try { setHistory(JSON.parse(saved)); } catch (e) {}
+                }
+            }, []);
+
+            // Save history on change
+            useEffect(() => {
+                localStorage.setItem('balootProHistory', JSON.stringify(history));
+            }, [history]);
+
+            // Setup Voice Recognition
+            useEffect(() => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    const recognition = new SpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    // Defaulting to Arabic for Saudi localization, but handles English keywords in the parser
+                    recognition.lang = 'ar-SA'; 
+                    
+                    recognition.onstart = () => {
+                        setIsListening(true);
+                        setVoiceFeedback("جاري الاستماع... قل 'لنا خمسين' أو 'Us fifty'");
+                    };
+                    
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        handleVoiceCommand(transcript);
+                    };
+                    
+                    recognition.onerror = (event) => {
+                        setIsListening(false);
+                        setVoiceFeedback("لم يتم التعرف على الصوت. حاول مجدداً.");
+                        setTimeout(() => setVoiceFeedback(""), 3000);
+                    };
+                    
+                    recognition.onend = () => {
+                        setIsListening(false);
+                    };
+                    
+                    recognitionRef.current = recognition;
+                }
+            }, []);
+
+            const totalLana = history.reduce((acc, curr) => acc + curr.lana, 0);
+            const totalLahoma = history.reduce((acc, curr) => acc + curr.lahoma, 0);
+            const gameOver = totalLana >= SakahLimit || totalLahoma >= SakahLimit;
+
+            const handleAddScore = (team, points) => {
+                if (points === 0) return;
+                const newRound = {
+                    id: Date.now(),
+                    lana: team === 'lana' ? points : 0,
+                    lahoma: team === 'lahoma' ? points : 0
+                };
+                setHistory([newRound, ...history]);
+            };
+
+            const undoLast = () => {
+                if (history.length > 0) {
+                    setHistory(history.slice(1));
+                }
+            };
+
+            const resetGame = () => {
+                if (window.confirm("هل أنت متأكد من تصفير النتيجة والبدء من جديد؟")) {
+                    setHistory([]);
+                }
+            };
+
+            // Voice Command NLP Engine
+            const arabicToEnglish = (str) => {
+                return str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            };
+
+            const handleVoiceCommand = (transcript) => {
+                let text = arabicToEnglish(transcript).toLowerCase();
+                
+                const isLana = text.includes('لنا') || text.includes('lana') || text.includes('us');
+                const isLahoma = text.includes('لهم') || text.includes('lahoma') || text.includes('them');
+                
+                const match = text.match(/\d+/);
+                let points = 0;
+                
+                // Prioritize numeric matches first, fallback to text representation
+                if (match) {
+                    points = parseInt(match[0], 10);
+                } else {
+                    const words = {
+                        // Arabic
+                        "واحد":1,"اثنين":2,"ثلاثة":3,"اربعة":4,"خمسة":5,"ستة":6,"سبعة":7,"ثمانية":8,"تسعة":9,"عشرة":10,
+                        "عشرين":20,"ثلاثين":30,"اربعين":40,"خمسين":50,"ستين":60,"سبعين":70,"ثمانين":80,"تسعين":90,"مية":100,
+                        "ميتين":200,"اربعمية":400,
+                        // English Fallback
+                        "one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,"ten":10,
+                        "twenty":20,"thirty":30,"forty":40,"fifty":50,"sixty":60,"seventy":70,"eighty":80,"ninety":90,
+                        "hundred":100
+                    };
+                    for (let w in words) {
+                        if (text.includes(w)) {
+                            points = words[w];
+                            break;
+                        }
+                    }
+                }
+
+                if (points > 0) {
+                    if (isLana) {
+                        handleAddScore('lana', points);
+                        setVoiceFeedback(`تمت إضافة ${points} لنا`);
+                    } else if (isLahoma) {
+                        handleAddScore('lahoma', points);
+                        setVoiceFeedback(`تمت إضافة ${points} لهم`);
+                    } else {
+                        setVoiceFeedback(`سمعت ${points} بس لمين؟ قل "لنا" أو "لهم"`);
+                    }
+                } else {
+                    setVoiceFeedback(`لم أفهم الرقم. سمعت: "${transcript}"`);
+                }
+                setTimeout(() => setVoiceFeedback(""), 4000);
+            };
+
+            const toggleListen = () => {
+                if (!recognitionRef.current) {
+                    alert("عذراً، متصفحك لا يدعم التعرف على الصوت. تحقق من الصلاحيات.");
+                    return;
+                }
+                if (isListening) {
+                    recognitionRef.current.stop();
+                } else {
+                    recognitionRef.current.start();
+                }
+            };
+
+            const handleKeypadSubmit = () => {
+                const pts = parseInt(inputValue, 10);
+                if (!isNaN(pts) && pts > 0 && keypadOpen) {
+                    handleAddScore(keypadOpen, pts);
+                }
+                setKeypadOpen(null);
+                setInputValue("");
+            };
+
+            return (
+                <div className="max-w-md mx-auto p-4 flex flex-col h-screen">
+                    {/* Header Controls */}
+                    <div className="flex justify-between items-center mb-6 pt-4">
+                        <button onClick={resetGame} className="text-slate-400 hover:text-white transition p-2" title="تصفير">
+                            <i className="fa-solid fa-rotate-right text-xl"></i>
+                        </button>
+                        <h1 className="text-3xl font-black tracking-wider gold-text text-center flex-1">
+                            Baloot Pro <i className="fa-solid fa-spade ml-1"></i>
+                        </h1>
+                        <button onClick={undoLast} disabled={history.length === 0} className={`p-2 transition ${history.length === 0 ? 'text-slate-600' : 'text-slate-400 hover:text-white'}`} title="تراجع">
+                            <i className="fa-solid fa-arrow-rotate-left text-xl"></i>
+                        </button>
+                    </div>
+
+                    {/* Sakah Limit Progress Bar */}
+                    <div className="w-full bg-slate-800 rounded-full h-2 mb-6 overflow-hidden flex shadow-inner">
+                        <div className="bg-emerald-500 h-full progress-bar shadow-[0_0_10px_#10b981]" style={{width: `${Math.min((totalLana/SakahLimit)*100, 100)}%`}}></div>
+                        <div className="flex-1 border-l border-r border-slate-700/50"></div>
+                        <div className="bg-rose-500 h-full progress-bar shadow-[0_0_10px_#f43f5e]" style={{width: `${Math.min((totalLahoma/SakahLimit)*100, 100)}%`}}></div>
+                    </div>
+
+                    {/* Dual Score Display */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        {/* Lana Card */}
+                        <div className="glass-panel rounded-3xl p-6 flex flex-col items-center relative overflow-hidden">
+                            {totalLana >= SakahLimit && <div className="absolute top-0 left-0 w-full h-2 bg-emerald-400 shadow-[0_0_15px_#34d399]"></div>}
+                            <h2 className="text-2xl font-bold text-slate-300 mb-2 tracking-wide">لنا (Us)</h2>
+                            <span className="text-6xl font-black text-white">{totalLana}</span>
+                            <button 
+                                onClick={() => setKeypadOpen('lana')}
+                                className="mt-6 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg btn-press shadow-lg shadow-emerald-900/50 flex items-center justify-center">
+                                <i className="fa-solid fa-plus mr-2"></i> إضافة
+                            </button>
+                        </div>
+
+                        {/* Lahoma Card */}
+                        <div className="glass-panel rounded-3xl p-6 flex flex-col items-center relative overflow-hidden">
+                            {totalLahoma >= SakahLimit && <div className="absolute top-0 left-0 w-full h-2 bg-rose-400 shadow-[0_0_15px_#fb7185]"></div>}
+                            <h2 className="text-2xl font-bold text-slate-300 mb-2 tracking-wide">لهم (Them)</h2>
+                            <span className="text-6xl font-black text-white">{totalLahoma}</span>
+                            <button 
+                                onClick={() => setKeypadOpen('lahoma')}
+                                className="mt-6 w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-lg btn-press shadow-lg shadow-rose-900/50 flex items-center justify-center">
+                                <i className="fa-solid fa-plus mr-2"></i> إضافة
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* AI Voice Recognition Trigger */}
+                    <div className="flex flex-col items-center mb-6">
+                        <button 
+                            onClick={toggleListen}
+                            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl btn-press transition-all duration-300 ${
+                                isListening 
+                                ? 'bg-blue-600 text-white shadow-[0_0_30px_rgba(37,99,235,0.8)] animate-pulse scale-110' 
+                                : 'glass-panel text-blue-400 border border-blue-500/30 hover:bg-blue-900/30'
+                            }`}
+                        >
+                            <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'}`}></i>
+                        </button>
+                        <p className={`mt-3 text-sm font-medium transition-opacity duration-300 ${voiceFeedback ? 'opacity-100' : 'opacity-0'} ${voiceFeedback.includes('لم') ? 'text-rose-400' : 'text-blue-300'}`}>
+                            {voiceFeedback || "جاهز للاستماع"}
+                        </p>
+                    </div>
+
+                    {/* Match History Ledger */}
+                    <div className="flex-1 glass-panel rounded-t-3xl overflow-hidden flex flex-col shadow-inner">
+                        <div className="grid grid-cols-3 text-center bg-slate-800/80 p-3 font-bold text-slate-400 text-sm border-b border-slate-700">
+                            <div>لنا</div>
+                            <div>الفرق</div>
+                            <div>لهم</div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-2">
+                            {history.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-slate-500 italic">لا توجد جولات بعد...</div>
+                            ) : (
+                                history.map((round) => {
+                                    const diff = Math.abs(round.lana - round.lahoma);
+                                    return (
+                                        <div key={round.id} className="grid grid-cols-3 text-center p-3 border-b border-slate-700/50 last:border-0 hover:bg-slate-800/30 transition rounded-lg animate-[fadeIn_0.3s_ease-out]">
+                                            <div className="text-emerald-400 font-bold text-lg">{round.lana > 0 ? round.lana : '-'}</div>
+                                            <div className="text-slate-500 text-sm flex items-center justify-center font-mono bg-slate-800/50 rounded px-2 w-max mx-auto">{diff > 0 ? diff : '-'}</div>
+                                            <div className="text-rose-400 font-bold text-lg">{round.lahoma > 0 ? round.lahoma : '-'}</div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Game Over Modal / Sakah Reached */}
+                    {gameOver && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full text-center relative overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400"></div>
+                                <i className="fa-solid fa-trophy text-6xl gold-text mb-4"></i>
+                                <h2 className="text-3xl font-black text-white mb-2">انتهت الصكة!</h2>
+                                <p className="text-xl text-slate-300 mb-6">
+                                    الفائز: <strong className={totalLana > totalLahoma ? 'text-emerald-400' : 'text-rose-400'}>
+                                        {totalLana > totalLahoma ? 'لنا (Us)' : 'لهم (Them)'}
+                                    </strong>
+                                </p>
+                                <div className="flex justify-center gap-6 mb-8 text-2xl font-bold bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                    <div className="text-emerald-400 flex flex-col"><span className="text-xs text-slate-400 mb-1">لنا</span>{totalLana}</div>
+                                    <div className="text-slate-500 flex items-center">-</div>
+                                    <div className="text-rose-400 flex flex-col"><span className="text-xs text-slate-400 mb-1">لهم</span>{totalLahoma}</div>
+                                </div>
+                                <button onClick={resetGame} className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-black text-xl btn-press shadow-lg shadow-yellow-600/30">
+                                    صكة جديدة
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Custom NumPad Modal */}
+                    {keypadOpen && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 flex items-end justify-center sm:items-center">
+                            <div className="bg-slate-900 border-t border-slate-700 sm:border sm:rounded-3xl p-6 w-full max-w-md animate-[slideUp_0.3s_ease-out]">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center">
+                                        إضافة نقاط 
+                                        <span className={`mr-2 px-3 py-1 rounded-full text-sm ${keypadOpen === 'lana' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-rose-900/50 text-rose-400'}`}>
+                                            {keypadOpen === 'lana' ? 'لنا (Us)' : 'لهم (Them)'}
+                                        </span>
+                                    </h3>
+                                    <button onClick={() => {setKeypadOpen(null); setInputValue("");}} className="text-slate-400 hover:text-white p-2">
+                                        <i className="fa-solid fa-xmark text-xl"></i>
+                                    </button>
+                                </div>
+                                
+                                <div className="bg-slate-800 rounded-xl p-4 mb-4 text-center text-4xl font-bold text-white h-16 flex items-center justify-center border border-slate-700 shadow-inner tracking-widest font-mono">
+                                    {inputValue || '0'}
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                    {[1,2,3,4,5,6,7,8,9].map(num => (
+                                        <button 
+                                            key={num} 
+                                            onClick={() => setInputValue(prev => (prev.length < 3 ? prev + num : prev))}
+                                            className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white text-2xl font-bold py-4 rounded-xl btn-press transition border border-slate-700/50">
+                                            {num}
+                                        </button>
+                                    ))}
+                                    <button 
+                                        onClick={() => setInputValue("")}
+                                        className="bg-red-900/40 hover:bg-red-800/60 text-red-400 text-xl font-bold py-4 rounded-xl btn-press transition border border-red-900/50">
+                                        مسح
+                                    </button>
+                                    <button 
+                                        onClick={() => setInputValue(prev => (prev.length < 3 && prev !== "" ? prev + '0' : prev))}
+                                        className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white text-2xl font-bold py-4 rounded-xl btn-press transition border border-slate-700/50">
+                                        0
+                                    </button>
+                                    <button 
+                                        onClick={() => setInputValue(prev => prev.slice(0, -1))}
+                                        className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 text-xl py-4 rounded-xl btn-press transition border border-slate-700/50">
+                                        <i className="fa-solid fa-delete-left"></i>
+                                    </button>
+                                </div>
+
+                                <button 
+                                    onClick={handleKeypadSubmit}
+                                    disabled={!inputValue}
+                                    className={`w-full py-4 rounded-xl font-bold text-xl btn-press shadow-lg transition ${
+                                        inputValue 
+                                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/50' 
+                                        : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                    }`}>
+                                    تأكيد وإضافة
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</body>
+</html>

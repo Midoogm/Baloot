@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <title>Baloot Pro - Pure Offline</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+        
+        :root {
+            --bg: #020617;
+            --panel: rgba(30, 41, 59, 0.6);
+            --border: rgba(255, 255, 255, 0.05);
+            --text: #f8fafc;
+            --emerald: #10b981;
+            --purple: #a855f7;
+            --indigo: #4f46e5;
+            --slate-400: #94a3b8;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --slate-950: #020617;
+        }
+
+        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; }
+        body { background: radial-gradient(circle at top, #1e293b, var(--bg)); color: var(--text); height: 100dvh; overflow: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        
+        .app-container { width: 100%; max-width: 440px; margin: 0 auto; hieght: 100%; height: 100dvh; display: flex; flex-col; flex-direction: column; }
+        .shrink-0 { flex-shrink: 0; }
+        .flex-1 { flex: 1; overflow-y: auto; }
+        
+        /* Layout Header */
+        .header { padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px; border-b: 1px solid var(--slate-800); bg-color: rgba(15, 23, 42, 0.5); }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        .gold-text { font-weight: 900; font-size: 24px; background: linear-gradient(to right, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* Standard Controls */
+        .btn { border: 1px solid var(--slate-700); background: var(--slate-800); color: var(--slate-400); padding: 6px 12px; rounded-radius: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.1s ease; display: inline-flex; align-items: center; gap: 6px; }
+        .btn:active { transform: scale(0.96); }
+        .btn-circle { width: 36px; height: 36px; border-radius: 50%; justify-content: center; padding: 0; }
+        .btn-strict { bg: rgba(79, 70, 229, 0.2); color: #818cf8; border-color: rgba(79, 70, 229, 0.4); }
+        .btn-free { background: rgba(217, 119, 6, 0.2); color: #fbbf24; border-color: rgba(217, 119, 6, 0.4); }
+        .btn-active-emerald { background: rgba(16, 185, 129, 0.2) !important; color: var(--emerald) !important; border-color: var(--emerald) !important; }
+        
+        /* Stacked Racing Progress Bars */
+        .progress-box { width: 100%; background: rgba(30, 41, 59, 0.8); height: 6px; border-radius: 3px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .bar-lane { height: 3px; w-full; position: relative; background: transparent; }
+        .bar-fill { height: 100%; position: absolute; right: 0; top: 0; width: 0%; transition: width 0.5s ease-out; }
+        .bar-lana { background: var(--emerald); }
+        .bar-lahoma { background: var(--purple); }
+
+        /* Scoreboard Display */
+        .scoreboard { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: rgba(15, 23, 42, 0.3); border-bottom: 1px solid var(--slate-800); }
+        .score-team { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .score-team label { font-size: 11px; font-weight: 700; color: var(--slate-400); margin-bottom: 2px; }
+        .score-val { font-size: 44px; font-weight: 900; tracking-tighter: -1px; }
+        .text-lana { color: var(--emerald); }
+        .text-lahoma { color: var(--purple); }
+
+        /* Form Area */
+        .form-panel { background: var(--slate-950); padding: 16px; border-bottom: 1px solid var(--slate-800); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .project-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .project-row label { font-size: 11px; font-weight: 700; color: var(--slate-400); width: 50px; }
+        .chips-container { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; justify-content: flex-end; }
+        
+        .chip { background: var(--slate-800); border: 1px solid var(--slate-700); color: var(--slate-400); padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; position: relative; }
+        .chip.active-lana { background: var(--emerald); color: white; border-color: var(--emerald); }
+        .chip.active-lahoma { background: var(--purple); color: white; border-color: var(--purple); }
+        .chip .badge { position: absolute; top: -6px; right: -6px; background: #e11d48; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--slate-950); }
+        .btn-clear-proj { background: rgba(225, 29, 72, 0.1); color: #f43f5e; border: 1px solid rgba(225, 29, 72, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 10px; }
+
+        .toggle-grid { grid-template-columns: 1fr 1fr; display: grid; gap: 10px; }
+        .toggle-box { display: flex; background: var(--slate-900); border: 1px solid var(--slate-800); border-radius: 10px; padding: 3px; }
+        .toggle-box button { flex: 1; border: none; background: transparent; color: var(--slate-400); font-weight: 700; font-size: 12px; padding: 6px; border-radius: 7px; cursor: pointer; }
+        .toggle-box button.active-indigo { background: var(--indigo); color: white; }
+        .toggle-box button.active-emerald { background: var(--emerald); color: white; }
+        .toggle-box button.active-purple { background: var(--purple); color: white; }
+
+        /* Calculator Input Row */
+        .input-row { background: rgba(30, 41, 59, 0.3); border: 1px solid var(--slate-800); padding: 12px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; position: relative; }
+        .input-wrapper { flex: 1; position: relative; }
+        .input-wrapper span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.2); pointer-events: none; }
+        .num-input { w-full; width: 100%; background: var(--slate-900); border: 1px solid var(--slate-700); border-radius: 10px; text-align: center; font-weight: 900; font-size: 28px; padding: 8px 32px 8px 8px; outline: none; transition: border 0.2s; }
+        .input-wrapper.lana-input .num-input { color: var(--emerald); }
+        .input-wrapper.lana-input .num-input:focus { border-color: var(--emerald); background: var(--slate-800); }
+        .input-wrapper.lahoma-input .num-input { color: var(--purple); }
+        .input-wrapper.lahoma-input .num-input:focus { border-color: var(--purple); background: var(--slate-800); }
+        
+        .mic-btn { width: 64px; height: 64px; border-radius: 50%; background: var(--indigo); border: 1px solid rgba(255,255,255,0.1); color: white; display: flex; items-center: center; justify-content: center; cursor: pointer; shrink-0: 0; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .mic-btn.listening { background: #e11d48; box-shadow: 0 0 20px #e11d48; animation: pulse 1.5s infinite; }
+        
+        .submit-btn { width: 100%; padding: 14px; background: linear-gradient(to right, #10b981, #059669); border: none; color: white; font-weight: 900; font-size: 16px; border-radius: 12px; cursor: pointer; display: block; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .submit-btn:disabled { background: var(--slate-800) !important; color: var(--slate-700) !important; border: 1px solid var(--slate-900); box-shadow: none; cursor: not-allowed; }
+
+        .feedback-bar { text-align: center; font-size: 11px; font-weight: 700; background: var(--slate-900); padding: 6px; border-radius: 6px; border: 1px solid var(--slate-800); display: none; }
+
+        /* Ledger Row */
+        .ledger-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--slate-950); border-bottom: 1px solid var(--slate-800); }
+        .ledger-title { font-size: 12px; font-weight: 700; color: var(--slate-400); }
+        .table-head { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; background: var(--slate-950); padding: 8px; font-size: 10px; font-weight: 700; color: var(--slate-500); border-bottom: 1px solid var(--slate-800); }
+        .table-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; padding: 10px; font-size: 15px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .badge-type { background: var(--slate-800); padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; width: max-content; margin: 0 auto; border: 1px solid var(--slate-700); color: var(--slate-400); }
+        .diff-lbl { font-size: 11px; color: var(--slate-500); font-family: monospace; }
+
+        /* Winner Overlay */
+        .winner-mask { position: fixed; inset: 0; background: rgba(2,6,23,0.85); backdrop-filter: blur(8px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .winner-card { background: var(--slate-900); border: 1px solid var(--slate-700); border-radius: 24px; padding: 32px; text-align: center; max-width: 340px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+        
+        svg { width: 18px; height: 18px; fill: currentColor; display: inline-block; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <div class="header shrink-0">
+        <div class="header-row">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="modeToggle" class="btn btn-strict">
+                    <svg viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm1 17.93V16h-2v3.93A8 8 0 0 1 4.07 13H8v-2H4.07A8 8 0 0 1 11 4.07V8h2V4.07A8 8 0 0 1 19.93 11H16v2h3.93A8 8 0 0 1 13 19.93z"/></svg>
+                    <span id="modeTxt">حاسبة ذكية</span>
+                </button>
+                <button id="ttsToggle" class="btn btn-circle">
+                    <svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM3 9v6h4l5 5V4L7 9H3z"/></svg>
+                </button>
+            </div>
+            <h1 class="gold-text">بلوت برو</h1>
+            <div>
+                <button id="resetBtn" class="btn btn-circle" style="color:#f43f5e;">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Stacked Racing Bars -->
+        <div class="progress-box">
+            <div class="bar-lane"><div id="barLana" class="bar-fill bar-lana"></div></div>
+            <div class="bar-lane"><div id="barLahoma" class="bar-fill bar-lahoma"></div></div>
+        </div>
+    </div>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard shrink-0">
+        <div class="score-team">
+            <label>لنا (Us)</label>
+            <span id="totLana" class="score-val text-lana">0</span>
+        </div>
+        <button id="announceBtn" class="btn btn-circle" style="background: var(--slate-900);">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </button>
+        <div class="score-team">
+            <label>لهم (Them)</label>
+            <span id="totLahoma" class="score-val text-purple">0</span>
+        </div>
+    </div>
+
+    <!-- Central Input Form -->
+    <div class="form-panel shrink-0">
+        <!-- Projects Row -->
+        <div class="project-row">
+            <label>مشاريعنا:</label>
+            <div class="chips-container" id="lanaChips"></div>
+        </div>
+        <div class="project-row">
+            <label>مشاريعهم:</label>
+            <div class="chips-container" id="lahomaChips"></div>
+        </div>
+
+        <!-- Strict Modifiers -->
+        <div class="toggle-grid" id="strictControls">
+            <div class="toggle-box">
+                <button id="typeSun" class="active-indigo">صن</button>
+                <button id="typeHokom">حكم</button>
+            </div>
+            <div class="toggle-box">
+                <button id="buyerLana" class="active-emerald">لنا</button>
+                <button id="buyerLahoma">لهم</button>
+            </div>
+        </div>
+
+        <!-- Inputs Grid -->
+        <div class="input-row">
+            <div class="input-wrapper lana-input">
+                <span>لنا</span>
+                <input type="number" id="inputLana" class="num-input" placeholder="-">
+            </div>
+            
+            <button id="micBtn" class="mic-btn">
+                <svg viewBox="0 0 24 24" style="width:28px; height:28px;"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+            </button>
+
+            <div class="input-wrapper laahoma-input">
+                <span>لهم</span>
+                <input type="number" id="inputLahoma" class="num-input" placeholder="-">
+            </div>
+        </div>
+
+        <div id="feedback" class="feedback-bar"></div>
+
+        <button id="submitBtn" class="submit-btn" disabled>اعتماد النتيجة</button>
+    </div>
+
+    <!-- Ledger List -->
+    <div class="ledger-header shrink-0">
+        <div class="ledger-title">سجل الجولات</div>
+        <button id="undoBtn" class="btn" disabled>
+            <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+            تراجع
+        </button>
+    </div>
+    <div class="table-head shrink-0">
+        <div>لنا</div><div>النوع</div><div>الفرق</div><div>لهم</div>
+    </div>
+    <div class="flex-1" id="ledgerBody"></div>
+</div>
+
+<!-- Winner Backdrop -->
+<div class="winner-mask" id="winnerModal">
+    <div class="winner-card">
+        <svg viewBox="0 0 24 24" style="width:72px; height:72px; color:#fbbf24; margin-bottom:16px;"><path d="M18 2H6c-1.1 0-2 .9-2 2v3c0 2.24 1.76 4.09 4 4.42V18c0 1.1.9 2 2 2h1v2h4v-2h1c1.1 0 2-.9 2-2v-6.58c2.24-.33 4-2.18 4-4.42V4c0-1.1-.9-2-2-2zm-12 5V4h2v3c0 .55-.45 1-1 1s-1-.45-1-1zm12 0c0 .55-.45 1-1 1s-1-.45-1-1V4h2v3z"/></svg>
+        <h2 style="font-size:28px; font-weight:900; margin-bottom:8px;">انتهت الصكة!</h2>
+        <p style="font-size:16px; color:var(--slate-400); margin-bottom:24px;">الفريق الفائز: <strong id="winnerName" style="font-size:24px; display:block; margin-top:8px;"></strong></p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button id="winReset" class="submit-btn">صكة جديدة</button>
+            <button id="winContinue" class="btn" style="width:100%; padding:12px; justify-content:center;">استمرار اللعب</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State Engine
+    let history = [];
+    let calcMode = 'strict'; // 'strict' | 'free'
+    let ttsEnabled = false;
+    let dismissedWin = false;
+
+    let form = {
+        type: 'sun', buyer: 'lana',
+        projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
+        pointsLana: '', pointsLahoma: ''
+    };
+
+    // Recognition Config
+    let isListening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    if (recognition) {
+        recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'ar-SA';
+    }
+
+    // Elements Cache
+    const el = (id) => document.getElementById(id);
+
+    // Initializer
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            if(localStorage.getItem('b_hist')) history = JSON.parse(localStorage.getItem('b_hist'));
+            if(localStorage.getItem('b_mode')) calcMode = localStorage.getItem('b_mode');
+            if(localStorage.getItem('b_tts')) ttsEnabled = localStorage.getItem('b_tts') === 'true';
+        } catch(e){}
+        
+        setupFormListeners();
+        setupVoice();
+        render();
+    });
+
+    function setupFormListeners() {
+        el('modeToggle').addEventListener('click', () => {
+            calcMode = calcMode === 'strict' ? 'free' : 'strict';
+            form.pointsLana = ''; form.pointsLahoma = '';
+            render();
+        });
+        el('ttsToggle').addEventListener('click', () => { ttsEnabled = !ttsEnabled; render(); });
+        el('resetBtn').addEventListener('click', resetGame);
+        el('undoBtn').addEventListener('click', handleUndo);
+        el('announceBtn').addEventListener('click', () => announce(true));
+
+        el('typeSun').addEventListener('click', () => { form.type = 'sun'; form.pointsLana = ''; form.pointsLahoma = ''; render(); });
+        el('typeHokom').addEventListener('click', () => { form.type = 'hokom'; form.pointsLana = ''; form.pointsLahoma = ''; render(); });
+        el('buyerLana').addEventListener('click', () => { form.buyer = 'lana'; render(); });
+        el('buyerLahoma').addEventListener('click', () => { form.buyer = 'lahoma'; render(); });
+
+        // Input Calc Overwrites
+        ['inputLana', 'inputLahoma'].forEach(id => {
+            const input = el(id);
+            input.addEventListener('focus', () => input.select());
+            input.addEventListener('input', (e) => {
+                let team = id === 'inputLana' ? 'lana' : 'lahoma';
+                let valStr = e.target.value.replace(/^0+/, '');
+                if (valStr === '') { form.pointsLana = ''; form.pointsLahoma = ''; render(); return; }
+                let val = parseInt(valStr, 10);
+                if (isNaN(val)) return;
+
+                if (calcMode === 'strict') {
+                    const max = form.type === 'sun' ? 26 : 16;
+                    if (val > max) val = parseInt(valStr.slice(-1), 10);
+                    if (team === 'lana') { form.pointsLana = val; form.pointsLahoma = max - val; }
+                    else { form.pointsLahoma = val; form.pointsLana = max - val; }
+                } else {
+                    if (team === 'lana') form.pointsLana = val; else form.pointsLahoma = val;
+                }
+                render();
+            });
+        });
+
+        el('submitBtn').addEventListener('click', submitRound);
+        el('winReset').addEventListener('click', () => { dismissedWin = false; resetGame(); el('winnerModal').style.display='none'; });
+        el('winContinue').addEventListener('click', () => { dismissedWin = true; el('winnerModal').style.display='none'; render(); });
+    }
+
+    function setupVoice() {
+        if (!recognition) { el('micBtn').style.opacity = '0.3'; return; }
+        el('micBtn').addEventListener('click', () => {
+            if (isListening) recognition.stop(); else { el('feedback').style.display='block'; el('feedback').innerText="أستمع..."; recognition.start(); }
+        });
+
+        recognition.onstart = () => { isListening = true; el('micBtn').classList.add('listening'); };
+        recognition.onend = () => { isListening = false; el('micBtn').classList.remove('listening'); };
+        recognition.onerror = () => { el('feedback').innerText = "❌ لم أسمع بوضوح."; };
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            processVoice(transcript);
+        };
+    }
+
+    function processVoice(transcript) {
+        let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
+        text = text.replace(/(\d+)/g, ' $1 ');
+
+        let parsedLana = null; let parsedLahoma = null;
+        let currentTarget = form.buyer;
+
+        const words = text.split(/\s+/).filter(w => w);
+        let i = 0;
+        while (i < words.length) {
+            let foundNum = null; let skip = 1;
+            if (i < words.length - 1) {
+                const two = words[i] + " " + words[i+1];
+                if (DEFAULT_NUMBERS[two] !== undefined) { foundNum = DEFAULT_NUMBERS[two]; skip = 2; }
+            }
+            if (foundNum === null) {
+                const one = words[i];
+                if (DEFAULT_NUMBERS[one] !== undefined) foundNum = DEFAULT_NUMBERS[one];
+                else if (/\d+/.test(one)) foundNum = parseInt(one, 10);
+                else if (DEFAULT_TARGETS[one] !== undefined) currentTarget = DEFAULT_TARGETS[one];
+            }
+            if (foundNum !== null) {
+                if (currentTarget === 'lana') parsedLana = foundNum; else parsedLahoma = foundNum;
+            }
+            i += skip;
+        }
+
+        const max = form.type === 'sun' ? 26 : 16;
+        if (calcMode === 'strict') {
+            if (parsedLana !== null && parsedLahoma !== null) {
+                form.pointsLana = Math.min(parsedLana, max); form.pointsLahoma = Math.min(parsedLahoma, max);
+            } else if (parsedLana !== null) {
+                form.pointsLana = Math.min(parsedLana, max); form.pointsLahoma = max - form.pointsLana;
+            } else if (parsedLahoma !== null) {
+                form.pointsLahoma = Math.min(parsedLahoma, max); form.pointsLana = max - form.pointsLahoma;
+            }
+        } else {
+            if (parsedLana !== null) form.pointsLana = parsedLana;
+            if (parsedLahoma !== null) form.pointsLahoma = parsedLahoma;
+        }
+        el('feedback').innerText = `✅ سمعت: ${transcript}`;
+        render();
+    }
+
+    function calculateProjects(team) {
+        let p = form.projects[team];
+        if (form.type === 'sun') return (p.sira*4) + (p.fifty*10) + (p.hundred*20) + (p.fourHundred*40);
+        return (p.sira*2) + (p.fifty*5) + (p.hundred*10) + (p.baloot*2);
+    }
+
+    function evalForm() {
+        let baseLana = parseInt(form.pointsLana) || 0;
+        let baseLahoma = parseInt(form.pointsLahoma) || 0;
+        let pLana = calculateProjects('lana');
+        let pLahoma = calculateProjects('lahoma');
+        
+        if (calcMode === 'free') {
+            return { totLana: baseLana + pLana, totLahoma: baseLahoma + pLahoma, ready: form.pointsLana!=='' && form.pointsLahoma!=='' };
+        }
+        
+        let maxPts = form.type === 'sun' ? 26 : 16;
+        let kabootPts = form.type === 'sun' ? 44 : 26;
+        let ready = (baseLana + baseLahoma === maxPts);
+        let totLana = 0, totLahoma = 0, msg = "";
+
+        if (ready) {
+            if (baseLana === maxPts) { totLana = kabootPts + pLana + pLahoma; msg = "كبوت لنا! 🔥"; }
+            else if (baseLahoma === maxPts) { totLahoma = kabootPts + pLana + pLahoma; msg = "كبوت لهم! 💀"; }
+            else {
+                let rLana = baseLana + pLana; let rLahoma = baseLahoma + pLahoma;
+                if (form.buyer === 'lana' && rLana <= rLahoma) { totLahoma = maxPts + pLana + pLahoma; msg = "سقطنا 💔"; }
+                else if (form.buyer === 'lahoma' && rLahoma <= rLana) { totLana = maxPts + pLana + pLahoma; msg = "طيحناهم 🏆"; }
+                else { totLana = rLana; totLahoma = rLahoma; }
+            }
+        }
+        return { totLana, totLahoma, lossMessage: msg, ready };
+    }
+
+    function submitRound() {
+        let res = evalForm();
+        if (!res.ready) return;
+        history = [{
+            id: Date.now(), lana: res.totLana, lahoma: res.totLahoma,
+            details: calcMode === 'strict' ? (form.type === 'sun'?'صن':'حكم') : 'حر',
+            snapshot: JSON.parse(JSON.stringify({ ...form, calcMode }))
+        }, ...history];
+        form = JSON.parse(JSON.stringify(blankForm));
+        el('feedback').style.display='none';
+        render();
+        announce();
+    }
+
+    function handleUndo() {
+        if(history.length === 0) return;
+        form = history[0].snapshot;
+        calcMode = form.calcMode || 'strict';
+        history = history.slice(1);
+        render();
+    }
+
+    function resetGame() {
+        history = []; form = JSON.parse(JSON.stringify(blankForm)); dismissedWin = false; render();
+    }
+
+    function announce(forced = false) {
+        if (!ttsEnabled && !forced) return;
+        window.speechSynthesis.cancel();
+        let tLana = history.reduce((a,c)=>a+c.lana, 0);
+        let tLahoma = history.reduce((a,c)=>a+c.lahoma, 0);
+        let u = new SpeechSynthesisUtterance(`لنا ${tLana}، ولهم ${tLahoma}.`);
+        u.lang = 'ar-SA'; window.speechSynthesis.speak(u);
+    }
+
+    function render() {
+        // Save
+        try {
+            localStorage.setItem('b_hist', JSON.stringify(history));
+            localStorage.setItem('b_mode', calcMode);
+            localStorage.setItem('b_tts', ttsEnabled);
+        } catch(e){}
+
+        // Totals
+        let tLana = history.reduce((a,c)=>a+c.lana, 0);
+        let tLahoma = history.reduce((a,c)=>a+c.lahoma, 0);
+        el('totLana').innerText = tLana;
+        el('totLahoma').innerText = tLahoma;
+
+        // Racing bars
+        el('barLana').style.width = `${Math.min((tLana/SakahLimit)*100, 100)}%`;
+        el('barLahoma').style.width = `${Math.min((tLahoma/SakahLimit)*100, 100)}%`;
+
+        // Toggles mapping
+        el('modeToggle').className = `btn btn-${calcMode}`;
+        el('modeTxt').innerText = calcMode === 'strict' ? 'حاسبة ذكية' : 'حاسبة حرة';
+        el('ttsToggle').className = `btn btn-circle ${ttsEnabled?'btn-active-emerald':''}`;
+        el('strictControls').style.display = calcMode === 'strict' ? 'grid' : 'none';
+
+        // Strict sub-states
+        ['typeSun','typeHokom','buyerLana','buyerLahoma'].forEach(id => el(id).className='');
+        el(form.type === 'sun'?'typeSun':'typeHokom').className = 'active-indigo';
+        el(form.buyer === 'lana'?'buyerLana':'buyerLahoma').className = form.buyer==='lana'?'active-emerald':'active-purple';
+
+        // Render chips
+        renderChips('lana'); renderChips('lahoma');
+
+        // Inputs setting
+        el('inputLana').value = form.pointsLana;
+        el('inputLahoma').value = form.pointsLahoma;
+
+        // Submit state
+        let ev = evalForm();
+        el('submitBtn').disabled = !ev.ready;
+        if(ev.ready && ev.lossMessage) el('submitBtn').innerText = `تسجيل (${ev.lossMessage})`;
+        else el('submitBtn').innerText = "اعتماد النتيجة";
+
+        // Undo setting
+        el('undoBtn').disabled = history.length === 0;
+
+        // Ledger block
+        el('ledgerBody').innerHTML = '';
+        let targetList = historyExpanded ? history : history.slice(0,3);
+        targetList.forEach(r => {
+            let row = document.createElement('div');
+            row.className = 'table-row';
+            row.innerHTML = `<div class="text-emerald-400 font-bold">${r.lana}</div><div><span class="badge-type">${r.details}</span></div><div class="diff-lbl">${Math.abs(r.lana-r.lahoma)}</div><div class="text-purple">${r.lahoma}</div>`;
+            el('ledgerBody').appendChild(row);
+        });
+
+        // Toggle History label
+        if(history.length > 3) {
+            el('ledgerBody').insertAdjacentHTML('beforeend', `<div style="text-align:center; padding: 8px;"><button class="btn" id="expandHistoryBtn">${historyExpanded?'طي السجل':'عرض كامل السجل'}</button></div>`);
+            el('expandHistoryBtn').addEventListener('click', () => { historyExpanded = !historyExpanded; render(); });
+        }
+
+        // Victory condition
+        if((tLana >= SakahLimit || tLahoma >= SakahLimit) && !dismissedWin) {
+            el('winnerModal').style.display = 'flex';
+            el('winnerName').innerText = tLana >= SakahLimit ? 'لنا (Us)' : 'لهم (Them)';
+        } else {
+            el('winnerModal').style.display = 'none';
+        }
+    }
+
+    function renderChips(team) {
+        const container = el(`${team}Chips`);
+        container.innerHTML = '';
+        PROJECT_DEF.forEach(p => {
+            let count = form.projects[team][p.key];
+            let activeClass = count > 0 ? (team === 'lana' ? 'active-emerald' : 'active-lahoma') : '';
+            let btn = document.createElement('button');
+            btn.className = `chip ${activeClass}`;
+            btn.innerText = p.label;
+            if(count > 0) btn.innerHTML += `<span class="badge">${count}</span>`;
+            btn.addEventListener('click', () => { form.projects[team][p.key]++; render(); });
+            container.appendChild(btn);
+        });
+    }
+</script>
+</body>
+</html>

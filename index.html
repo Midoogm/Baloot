@@ -15,15 +15,14 @@
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
         body {
             font-family: 'Tajawal', sans-serif;
-            background-color: #0f172a; /* Fallback */
+            background-color: #0f172a;
             background: radial-gradient(circle at top, #1e293b, #020617);
             color: #f8fafc;
-            /* Use dvh for modern mobile browsers to account for address bars */
             height: 100dvh; 
             margin: 0;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden; /* Prevent body scroll, handle inside React */
+            overflow: hidden;
         }
         .glass-panel {
             background: rgba(30, 41, 59, 0.6);
@@ -40,21 +39,35 @@
         .btn-press:active { transform: scale(0.96); }
         .progress-bar { transition: width 0.5s ease-out; }
         
-        /* Smooth Scrollbars */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
-        /* Modern Chip styling */
-        .chip { transition: all 0.2s ease; }
+        .chip { transition: all 0.2s ease; position: relative; }
         .chip.active {
             background-color: #3b82f6;
             color: white;
             border-color: #3b82f6;
             box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
         }
+        .badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #e11d48;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border: 2px solid #0f172a;
+        }
         
-        /* Bottom Sheet Animation */
         @keyframes slideUpSheet {
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -71,41 +84,46 @@
         const { useState, useEffect, useRef } = React;
 
         const SakahLimit = 152;
+        
+        const PROJECT_DEF = [
+            { key: 'sira', label: 'سرا' },
+            { key: 'fifty', label: 'خمسين' },
+            { key: 'hundred', label: 'مية' },
+            { key: 'fourHundred', label: 'اربعمية' },
+            { key: 'baloot', label: 'بلوت' }
+        ];
 
         const App = () => {
             const [history, setHistory] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
             
-            // Round Wizard State
             const [form, setForm] = useState({
                 type: 'sun',
                 buyer: 'lana',
-                projLana: 0,
-                projLahoma: 0,
+                projects: {
+                    lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 },
+                    lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }
+                },
                 pointsLana: '',
                 pointsLahoma: ''
             });
 
-            // Voice & Conversation State
             const [isListening, setIsListening] = useState(false);
             const [isSpeaking, setIsSpeaking] = useState(false);
             const [transcriptLog, setTranscriptLog] = useState("");
-            const [assistantMessage, setAssistantMessage] = useState("اضغط على المايك لبدء المحادثة...");
+            const [assistantMessage, setAssistantMessage] = useState("أدخل المشاريع يدوياً، ثم اضغط المايك لبدء المحادثة...");
             const [convStep, setConvStep] = useState('idle');
             
             const recognitionRef = useRef(null);
-            const scrollContainerRef = useRef(null); // To auto-scroll history
+            const scrollContainerRef = useRef(null);
 
-            // Load & Save History
             useEffect(() => {
-                const saved = localStorage.getItem('balootProHistoryV4');
-                if (saved) {
-                    try { setHistory(JSON.parse(saved)); } catch (e) {}
-                }
+                const saved = localStorage.getItem('balootProHistoryV5');
+                if (saved) try { setHistory(JSON.parse(saved)); } catch (e) {}
             }, []);
 
             useEffect(() => {
-                localStorage.setItem('balootProHistoryV4', JSON.stringify(history));
+                localStorage.setItem('balootProHistoryV5', JSON.stringify(history));
             }, [history]);
 
             // Setup Voice Recognition
@@ -127,9 +145,7 @@
                     
                     recognition.onerror = () => {
                         setIsListening(false);
-                        if (convStep !== 'idle') {
-                            speakAndListen("لم أسمعك بوضوح. هل يمكنك الإعادة؟", convStep);
-                        }
+                        if (convStep !== 'idle') speakAndListen("لم أسمعك بوضوح. كرر لو سمحت؟", convStep);
                     };
                     
                     recognition.onend = () => setIsListening(false);
@@ -137,7 +153,6 @@
                 }
             }, [form, convStep]);
 
-            // Text-to-Speech Engine
             const speakAndListen = (text, nextStep) => {
                 window.speechSynthesis.cancel();
                 setAssistantMessage(text);
@@ -172,96 +187,126 @@
 
             const handleTypeChange = (type) => setForm(prev => ({ ...prev, type, pointsLana: '', pointsLahoma: '' }));
 
-            // Conversational NLP State Machine
+            const handleProjectClick = (team, projKey) => {
+                setForm(prev => {
+                    const newProjects = { ...prev.projects };
+                    newProjects[team] = { ...newProjects[team] };
+                    newProjects[team][projKey] += 1;
+                    return { ...prev, projects: newProjects };
+                });
+            };
+
+            const clearProjects = (team) => {
+                setForm(prev => {
+                    const newProjects = { ...prev.projects };
+                    newProjects[team] = { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 };
+                    return { ...prev, projects: newProjects };
+                });
+            };
+
+            const calculateProjectPoints = (team, type) => {
+                const p = form.projects[team];
+                let total = 0;
+                // Official Baloot Rules for Project Points
+                if (type === 'sun') {
+                    total += p.sira * 4;
+                    total += p.fifty * 10;
+                    total += p.hundred * 20;
+                    total += p.fourHundred * 40;
+                } else {
+                    total += p.sira * 2;
+                    total += p.fifty * 5;
+                    total += p.hundred * 10;
+                    total += p.baloot * 2;
+                }
+                return total;
+            };
+
+            // NLP Engine - Focuses only on Type, Buyer, and Points.
             const handleConversationalStep = (transcript) => {
                 let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
                 let updates = { ...form };
+                let fastTrack = false;
 
+                // Synonyms Dictionary
+                const isSun = text.match(/(صن|سن|صام|صم|صط|سوم|صون|sun)/);
+                const isHokom = text.match(/(حكم|حقم|هكم|حك|hokom|hakam)/);
+                const isLana = text.match(/(لنا|إحنا|نحن|حنا|معنا|شرينا|اشترينا|حقنا|us|lana)/);
+                const isLahoma = text.match(/(لهم|هم|خصم|ضدهم|هما|خذوها|اشتروها|theirs|them|lahoma)/);
+
+                // Point Extraction (0-26 with heavy colloquial support)
+                const words = {
+                    "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
+                    "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
+                    "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
+                    "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
+                    "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
+                    "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
+                    "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
+                };
+
+                let foundNumber = null;
+                const matches = text.match(/\d+/);
+                if (matches) foundNumber = parseInt(matches[0], 10);
+                else {
+                    for (let w in words) {
+                        if (text.includes(w)) { foundNumber = words[w]; break; }
+                    }
+                }
+
+                // Sentence Parsing (If user says everything at once)
+                if ((isSun || isHokom) && (isLana || isLahoma) && foundNumber !== null) {
+                    updates.type = isSun ? 'sun' : 'hokom';
+                    updates.buyer = isLana ? 'lana' : 'lahoma';
+                    const max = updates.type === 'sun' ? 26 : 16;
+                    if (foundNumber <= max) {
+                        if (isLahoma && !isLana && !text.includes('عطهم')) {
+                            updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber;
+                        } else {
+                            updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber;
+                        }
+                    }
+                    setForm(updates);
+                    speakAndListen("تم تسجيل اللعب والمشتري والابناط. راجعها واضغط اعتماد.", 'done');
+                    return;
+                }
+
+                // Step-by-Step Parsing
                 if (convStep === 'type') {
-                    if (text.includes('صن') || text.includes('سن')) {
-                        updates.type = 'sun';
-                        setForm(updates);
-                        speakAndListen("صن. مين المشتري؟", 'buyer');
-                    } else if (text.includes('حكم')) {
-                        updates.type = 'hokom';
-                        setForm(updates);
-                        speakAndListen("حكم. مين المشتري؟", 'buyer');
+                    if (isSun) {
+                        updates.type = 'sun'; setForm(updates);
+                        speakAndListen("صن. مين المشتري؟ لنا ولا لهم؟", 'buyer');
+                    } else if (isHokom) {
+                        updates.type = 'hokom'; setForm(updates);
+                        speakAndListen("حكم. مين المشتري؟ لنا ولا لهم؟", 'buyer');
                     } else {
                         speakAndListen("عفواً، اللعب صن ولا حكم؟", 'type');
                     }
                 } 
                 else if (convStep === 'buyer') {
-                    if (text.includes('لنا') || text.includes('احنا')) {
-                        updates.buyer = 'lana';
-                        setForm(updates);
-                        speakAndListen("لنا. هل فيه مشاريع؟", 'projects');
-                    } else if (text.includes('لهم') || text.includes('اشتروا')) {
-                        updates.buyer = 'lahoma';
-                        setForm(updates);
-                        speakAndListen("لهم. هل فيه مشاريع؟", 'projects');
+                    if (isLana) {
+                        updates.buyer = 'lana'; setForm(updates);
+                        speakAndListen("المشتري لنا. كم الأبناط؟", 'points');
+                    } else if (isLahoma) {
+                        updates.buyer = 'lahoma'; setForm(updates);
+                        speakAndListen("المشتري لهم. كم الأبناط؟", 'points');
                     } else {
-                        speakAndListen("مين المشتري؟", 'buyer');
-                    }
-                }
-                else if (convStep === 'projects') {
-                    if (text.includes('بدون') || text.includes('لا') || text.includes('مافيه')) {
-                        speakAndListen("بدون مشاريع. كم الأبناط؟", 'points');
-                        return;
-                    }
-                    
-                    let foundProjects = false;
-                    if (text.includes('سرا') || text.includes('سرى')) {
-                        if (updates.buyer === 'lana') updates.projLana += 2; else updates.projLahoma += 2;
-                        foundProjects = true;
-                    }
-                    if (text.includes('خمسين')) {
-                        if (updates.buyer === 'lana') updates.projLana += 5; else updates.projLahoma += 5;
-                        foundProjects = true;
-                    }
-                    if (text.includes('ميه') || text.includes('مية')) {
-                        if (updates.buyer === 'lana') updates.projLana += 10; else updates.projLahoma += 10;
-                        foundProjects = true;
-                    }
-                    
-                    setForm(updates);
-                    if (foundProjects) {
-                        speakAndListen("سجلت المشاريع. كم الأبناط؟", 'points');
-                    } else {
-                        speakAndListen("لم أفهم المشاريع. يمكنك إدخالها يدوياً أو قل الأبناط.", 'points');
+                        speakAndListen("مين المشتري؟ لنا ولا لهم؟", 'buyer');
                     }
                 }
                 else if (convStep === 'points') {
-                    const words = {
-                        "صفر":0,"واحد":1,"اثنين":2,"ثلاثه":3,"ثلاثة":3,"اربع":4,"اربعة":4,"اربعه":4,"خمسه":5,"خمسة":5,
-                        "سته":6,"ستة":6,"سبعه":7,"سبعة":7,"ثمانيه":8,"ثمانية":8,"تسعه":9,"تسعة":9,"عشره":10,"عشرة":10,
-                        "احداعش":11,"اثناعش":12,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"ستطعش":16,"سبعطعش":17,
-                        "ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,"ثلاثه وعشرين":23,
-                        "اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
-                    };
-
-                    let foundNumber = null;
-                    const matches = text.match(/\d+/);
-                    if (matches) foundNumber = parseInt(matches[0], 10);
-                    else {
-                        for (let w in words) {
-                            if (text.includes(w)) { foundNumber = words[w]; break; }
-                        }
-                    }
-
                     if (foundNumber !== null) {
                         const max = updates.type === 'sun' ? 26 : 16;
                         if (foundNumber <= max) {
-                            if (text.includes('لهم') && !text.includes('لنا')) {
-                                updates.pointsLahoma = foundNumber;
-                                updates.pointsLana = max - foundNumber;
+                            if (isLahoma && !isLana) {
+                                updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber;
                             } else {
-                                updates.pointsLana = foundNumber;
-                                updates.pointsLahoma = max - foundNumber;
+                                updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber;
                             }
                             setForm(updates);
-                            speakAndListen("تم. راجع النتيجة ثم اضغط اعتماد.", 'done');
+                            speakAndListen("تم. راجع النتيجة واضغط اعتماد.", 'done');
                         } else {
-                            speakAndListen("الرقم أكبر من المسموح. كم الأبناط؟", 'points');
+                            speakAndListen(`الرقم أكبر من المسموح. الحد الأقصى ${max}. كم الأبناط؟`, 'points');
                         }
                     } else {
                         speakAndListen("لم أسمع رقماً. كم الأبناط؟", 'points');
@@ -271,7 +316,6 @@
 
             const startConversation = () => {
                 if (!recognitionRef.current) return alert("المتصفح لا يدعم التعرف على الصوت.");
-                setForm({ type: 'sun', buyer: 'lana', projLana: 0, projLahoma: 0, pointsLana: '', pointsLahoma: '' });
                 setTranscriptLog("");
                 speakAndListen("نوع اللعب صن ولا حكم؟", 'type');
             };
@@ -288,28 +332,32 @@
                 let baseLahoma = parseInt(form.pointsLahoma) || 0;
                 let maxPts = form.type === 'sun' ? 26 : 16;
                 let kabootPts = form.type === 'sun' ? 44 : 26;
-                let totLana = baseLana + form.projLana;
-                let totLahoma = baseLahoma + form.projLahoma;
+                
+                let projLanaPts = calculateProjectPoints('lana', form.type);
+                let projLahomaPts = calculateProjectPoints('lahoma', form.type);
+                
+                let totLana = baseLana + projLanaPts;
+                let totLahoma = baseLahoma + projLahomaPts;
                 let isLoss = false;
                 let lossMessage = "";
 
                 if (baseLana === maxPts) {
-                    totLana = kabootPts + form.projLana + form.projLahoma;
+                    totLana = kabootPts + projLanaPts + projLahomaPts;
                     totLahoma = 0;
                     lossMessage = "كبوت لنا! 🔥";
                 } else if (baseLahoma === maxPts) {
-                    totLahoma = kabootPts + form.projLana + form.projLahoma;
+                    totLahoma = kabootPts + projLanaPts + projLahomaPts;
                     totLana = 0;
                     lossMessage = "كبوت لهم! 💀";
                 } else {
                     if (form.buyer === 'lana' && totLana <= totLahoma && (baseLana + baseLahoma === maxPts)) {
                         isLoss = true;
-                        totLahoma = maxPts + form.projLana + form.projLahoma;
+                        totLahoma = maxPts + projLanaPts + projLahomaPts;
                         totLana = 0;
                         lossMessage = "خسارة علينا! (سقطنا) 💔";
                     } else if (form.buyer === 'lahoma' && totLahoma <= totLana && (baseLana + baseLahoma === maxPts)) {
                         isLoss = true;
-                        totLana = maxPts + form.projLana + form.projLahoma;
+                        totLana = maxPts + projLanaPts + projLahomaPts;
                         totLahoma = 0;
                         lossMessage = "خسارة عليهم! (طيحناهم) 🏆";
                     }
@@ -324,6 +372,13 @@
                 setHistory([{ id: Date.now(), lana: results.totLana, lahoma: results.totLahoma, details: form.type === 'sun' ? 'صن' : 'حكم' }, ...history]);
                 setIsModalOpen(false);
                 stopConversation();
+                
+                // Reset Form state for next round
+                setForm({
+                    type: 'sun', buyer: 'lana',
+                    projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
+                    pointsLana: '', pointsLahoma: ''
+                });
             };
 
             const resetGame = () => { if (window.confirm("تصفير النتيجة والبدء من جديد؟")) setHistory([]); };
@@ -335,7 +390,6 @@
             return (
                 <div className="w-full max-w-md mx-auto h-[100dvh] flex flex-col relative overflow-hidden bg-[#0f172a]">
                     
-                    {/* Header Area */}
                     <div className="px-5 pt-6 pb-4 shrink-0 flex flex-col z-10">
                         <div className="flex justify-between items-center mb-5">
                             <button onClick={resetGame} className="text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition">
@@ -346,8 +400,6 @@
                                 <i className="fa-solid fa-arrow-rotate-left text-lg"></i>
                             </button>
                         </div>
-
-                        {/* Progress Bar */}
                         <div className="w-full bg-slate-800/80 rounded-full h-1.5 flex overflow-hidden">
                             <div className="bg-emerald-500 h-full progress-bar" style={{width: `${Math.min((totalLana/SakahLimit)*100, 100)}%`}}></div>
                             <div className="flex-1"></div>
@@ -355,7 +407,6 @@
                         </div>
                     </div>
 
-                    {/* Main Score Cards */}
                     <div className="px-5 pb-5 shrink-0 z-10">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="glass-panel rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden">
@@ -371,7 +422,6 @@
                         </div>
                     </div>
 
-                    {/* Floating Action Button */}
                     <div className="px-5 pb-5 shrink-0 z-10">
                         <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); }} 
                             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg btn-press shadow-lg shadow-blue-900/30 flex items-center justify-center">
@@ -379,7 +429,6 @@
                         </button>
                     </div>
 
-                    {/* Ledger/History Area */}
                     <div className="flex-1 glass-panel rounded-t-3xl overflow-hidden flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-0 mx-2 mb-0">
                         <div className="grid grid-cols-4 text-center bg-slate-900/80 p-3 font-bold text-slate-400 text-xs border-b border-slate-700/50 shrink-0">
                             <div>لنا</div><div>لعب</div><div>الفرق</div><div>لهم</div>
@@ -403,15 +452,11 @@
                         </div>
                     </div>
 
-                    {/* Bottom Sheet Modal */}
                     {isModalOpen && (
                         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm sm:items-center sm:justify-center">
-                            {/* Backdrop click to close */}
                             <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); stopConversation();}}></div>
-                            
                             <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[92dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
                                 
-                                {/* Modal Header (Sticky) */}
                                 <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
                                     <h3 className="text-xl font-bold text-white tracking-wide">تسجيل النتيجة</h3>
                                     <button onClick={() => {setIsModalOpen(false); stopConversation();}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
@@ -419,10 +464,60 @@
                                     </button>
                                 </div>
 
-                                {/* Modal Body (Scrollable) */}
                                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
                                     
-                                    {/* Compact Voice Assistant Panel */}
+                                    {/* Projects Section - STRICTLY MANUAL & FIRST */}
+                                    <div className="space-y-4 bg-slate-950/30 p-3 rounded-2xl border border-slate-800">
+                                        <div className="text-center text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide border-b border-slate-800 pb-2">
+                                            أدخل المشاريع يدوياً أولاً (إن وجدت)
+                                        </div>
+                                        
+                                        {/* Lana Projects */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2 ml-1">
+                                                <label className="text-xs text-slate-400 font-bold">مشاريعنا (لنا): {calculateProjectPoints('lana', form.type) > 0 && <span className="text-emerald-400 ml-1">+{calculateProjectPoints('lana', form.type)} بنط</span>}</label>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {PROJECT_DEF.map(p => {
+                                                    const count = form.projects.lana[p.key];
+                                                    return (
+                                                        <button key={'lana'+p.key} onClick={() => handleProjectClick('lana', p.key)} 
+                                                            className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
+                                                            {p.label}
+                                                            {count > 0 && <span className="badge">{count}</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                                {Object.values(form.projects.lana).some(v => v > 0) && (
+                                                    <button onClick={() => clearProjects('lana')} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Lahoma Projects */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2 ml-1">
+                                                <label className="text-xs text-slate-400 font-bold">مشاريعهم (لهم): {calculateProjectPoints('lahoma', form.type) > 0 && <span className="text-rose-400 ml-1">+{calculateProjectPoints('lahoma', form.type)} بنط</span>}</label>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {PROJECT_DEF.map(p => {
+                                                    const count = form.projects.lahoma[p.key];
+                                                    return (
+                                                        <button key={'lahoma'+p.key} onClick={() => handleProjectClick('lahoma', p.key)} 
+                                                            className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
+                                                            {p.label}
+                                                            {count > 0 && <span className="badge">{count}</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                                {Object.values(form.projects.lahoma).some(v => v > 0) && (
+                                                    <button onClick={() => clearProjects('lahoma')} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* AI Voice Assistant */}
                                     <div className="bg-slate-800/50 rounded-2xl p-3 border border-blue-900/40 relative overflow-hidden flex flex-col gap-2">
                                         {isSpeaking && <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-500 animate-pulse"></div>}
                                         {isListening && <div className="absolute top-0 left-0 w-full h-0.5 bg-emerald-500 animate-pulse"></div>}
@@ -462,41 +557,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Projects Section (Responsive Grid) */}
-                                    <div className="space-y-4">
-                                        {/* Lana Projects */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2 ml-1">
-                                                <label className="text-xs text-slate-400 font-bold">مشاريعنا (لنا): {form.projLana > 0 && <span className="text-emerald-400 ml-1">+{form.projLana}</span>}</label>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {[ {l:'سرا',v:2}, {l:'خمسين',v:5}, {l:'مية',v:10}, {l:'اربعمية',v:40}, {l:'بلوت',v:2} ].map(p => (
-                                                    <button key={'lana'+p.l} onClick={() => setForm({...form, projLana: form.projLana === p.v ? 0 : form.projLana + p.v})} 
-                                                        className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${form.projLana >= p.v ? 'active' : ''}`}>{p.l}</button>
-                                                ))}
-                                                {form.projLana > 0 && (
-                                                    <button onClick={() => setForm({...form, projLana: 0})} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Lahoma Projects */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2 ml-1">
-                                                <label className="text-xs text-slate-400 font-bold">مشاريعهم (لهم): {form.projLahoma > 0 && <span className="text-rose-400 ml-1">+{form.projLahoma}</span>}</label>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {[ {l:'سرا',v:2}, {l:'خمسين',v:5}, {l:'مية',v:10}, {l:'اربعمية',v:40}, {l:'بلوت',v:2} ].map(p => (
-                                                    <button key={'lahoma'+p.l} onClick={() => setForm({...form, projLahoma: form.projLahoma === p.v ? 0 : form.projLahoma + p.v})} 
-                                                        className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${form.projLahoma >= p.v ? 'active' : ''}`}>{p.l}</button>
-                                                ))}
-                                                {form.projLahoma > 0 && (
-                                                    <button onClick={() => setForm({...form, projLahoma: 0})} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     {/* Points Input */}
                                     <div>
                                         <label className="text-xs text-slate-400 font-bold mb-2 block ml-1">الأبناط (المجموع {form.type === 'sun' ? 26 : 16}):</label>
@@ -531,7 +591,6 @@
                                     </div>
                                 </div>
 
-                                {/* Modal Footer (Sticky Bottom) */}
                                 <div className="p-5 border-t border-slate-800/80 bg-slate-900 shrink-0 pb-8 sm:pb-5">
                                     <button onClick={submitRound} disabled={!preview.ready} 
                                         className={`w-full py-3.5 rounded-xl font-bold text-lg transition-all btn-press flex items-center justify-center gap-2

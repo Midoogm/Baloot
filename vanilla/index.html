@@ -3,526 +3,1031 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
-    <title>Baloot Pro - Pure Offline</title>
+    
+    <title>Baloot Pro - بلوت برو</title>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
         
         :root {
-            --bg: #020617;
-            --panel: rgba(30, 41, 59, 0.6);
-            --border: rgba(255, 255, 255, 0.05);
-            --text: #f8fafc;
-            --emerald: #10b981;
-            --purple: #a855f7;
-            --indigo: #4f46e5;
+            --slate-50: #f8fafc;
+            --slate-300: #cbd5e1;
             --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
             --slate-700: #334155;
             --slate-800: #1e293b;
             --slate-900: #0f172a;
             --slate-950: #020617;
+            --emerald-400: #34d399;
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+            --purple-400: #c084fc;
+            --purple-500: #a855f7;
+            --purple-600: #9333ea;
+            --indigo-600: #4f46e5;
+            --blue-400: #60a5fa;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --rose-400: #fb7185;
+            --rose-600: #e11d48;
+            --amber-300: #fcd34d;
+            --amber-700: #b45309;
+            --yellow-500: #eab308;
+            --yellow-600: #ca8a04;
+            --red-400: #f87171;
+            --red-900: #7f1d1d;
         }
 
-        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; }
-        body { background: radial-gradient(circle at top, #1e293b, var(--bg)); color: var(--text); height: 100dvh; overflow: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        .app-container { width: 100%; max-width: 440px; margin: 0 auto; hieght: 100%; height: 100dvh; display: flex; flex-col; flex-direction: column; }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--slate-900);
+            background: radial-gradient(circle at top, var(--slate-800), var(--slate-950));
+            color: var(--slate-50);
+            height: 100dvh; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 28rem; /* 448px */
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--slate-900);
+            position: relative;
+        }
+
+        button {
+            font-family: inherit;
+            border: none;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-press { transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
+        .btn-press:active:not(:disabled) { transform: scale(0.96); }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--slate-700); border-radius: 10px; }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Typography & Utilities */
+        .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-5xl { font-size: 3rem; line-height: 1; }
+        .font-bold { font-weight: 700; }
+        .font-black { font-weight: 900; }
+        .text-center { text-align: center; }
+        .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-end { justify-content: flex-end; }
+        .flex-1 { flex: 1 1 0%; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
         .shrink-0 { flex-shrink: 0; }
-        .flex-1 { flex: 1; overflow-y: auto; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
         
-        /* Layout Header */
-        .header { padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px; border-b: 1px solid var(--slate-800); bg-color: rgba(15, 23, 42, 0.5); }
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .gold-text { font-weight: 900; font-size: 24px; background: linear-gradient(to right, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Layout Sections */
+        .header-section {
+            z-index: 10;
+            border-bottom: 1px solid var(--slate-800);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background-color: rgba(15, 23, 42, 0.5);
+            flex-shrink: 0;
+        }
+
+        .header-top { padding: 1rem 1rem 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+        .header-actions { display: flex; gap: 0.5rem; }
         
-        /* Standard Controls */
-        .btn { border: 1px solid var(--slate-700); background: var(--slate-800); color: var(--slate-400); padding: 6px 12px; rounded-radius: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.1s ease; display: inline-flex; align-items: center; gap: 6px; }
-        .btn:active { transform: scale(0.96); }
-        .btn-circle { width: 36px; height: 36px; border-radius: 50%; justify-content: center; padding: 0; }
-        .btn-strict { bg: rgba(79, 70, 229, 0.2); color: #818cf8; border-color: rgba(79, 70, 229, 0.4); }
-        .btn-free { background: rgba(217, 119, 6, 0.2); color: #fbbf24; border-color: rgba(217, 119, 6, 0.4); }
-        .btn-active-emerald { background: rgba(16, 185, 129, 0.2) !important; color: var(--emerald) !important; border-color: var(--emerald) !important; }
+        .title-gold {
+            font-size: 1.5rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            background: linear-gradient(to right, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .scoreboard { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; position: relative; }
+        .score-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .score-val { font-size: 3rem; font-weight: 900; letter-spacing: -0.05em; }
         
-        /* Stacked Racing Progress Bars */
-        .progress-box { width: 100%; background: rgba(30, 41, 59, 0.8); height: 6px; border-radius: 3px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
-        .bar-lane { height: 3px; w-full; position: relative; background: transparent; }
-        .bar-fill { height: 100%; position: absolute; right: 0; top: 0; width: 0%; transition: width 0.5s ease-out; }
-        .bar-lana { background: var(--emerald); }
-        .bar-lahoma { background: var(--purple); }
-
-        /* Scoreboard Display */
-        .scoreboard { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: rgba(15, 23, 42, 0.3); border-bottom: 1px solid var(--slate-800); }
-        .score-team { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .score-team label { font-size: 11px; font-weight: 700; color: var(--slate-400); margin-bottom: 2px; }
-        .score-val { font-size: 44px; font-weight: 900; tracking-tighter: -1px; }
-        .text-lana { color: var(--emerald); }
-        .text-lahoma { color: var(--purple); }
-
-        /* Form Area */
-        .form-panel { background: var(--slate-950); padding: 16px; border-bottom: 1px solid var(--slate-800); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
-        .project-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .project-row label { font-size: 11px; font-weight: 700; color: var(--slate-400); width: 50px; }
-        .chips-container { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; justify-content: flex-end; }
+        .progress-bars { position: absolute; bottom: 0; left: 0; width: 100%; display: flex; flex-direction: column; height: 6px; background: rgba(30, 41, 59, 0.8); }
+        .progress-track { height: 100%; position: relative; width: 100%; overflow: hidden; }
+        .progress-fill { height: 100%; position: absolute; right: 0; transition: width 0.5s ease; }
         
-        .chip { background: var(--slate-800); border: 1px solid var(--slate-700); color: var(--slate-400); padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; position: relative; }
-        .chip.active-lana { background: var(--emerald); color: white; border-color: var(--emerald); }
-        .chip.active-lahoma { background: var(--purple); color: white; border-color: var(--purple); }
-        .chip .badge { position: absolute; top: -6px; right: -6px; background: #e11d48; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--slate-950); }
-        .btn-clear-proj { background: rgba(225, 29, 72, 0.1); color: #f43f5e; border: 1px solid rgba(225, 29, 72, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 10px; }
+        .main-form {
+            padding: 1rem;
+            background-color: var(--slate-950);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-bottom: 1px solid var(--slate-800);
+            position: relative;
+            flex-shrink: 0;
+        }
 
-        .toggle-grid { grid-template-columns: 1fr 1fr; display: grid; gap: 10px; }
-        .toggle-box { display: flex; background: var(--slate-900); border: 1px solid var(--slate-800); border-radius: 10px; padding: 3px; }
-        .toggle-box button { flex: 1; border: none; background: transparent; color: var(--slate-400); font-weight: 700; font-size: 12px; padding: 6px; border-radius: 7px; cursor: pointer; }
-        .toggle-box button.active-indigo { background: var(--indigo); color: white; }
-        .toggle-box button.active-emerald { background: var(--emerald); color: white; }
-        .toggle-box button.active-purple { background: var(--purple); color: white; }
+        .edit-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background-color: var(--yellow-500); display: none; }
+        .edit-indicator.active { display: block; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-        /* Calculator Input Row */
-        .input-row { background: rgba(30, 41, 59, 0.3); border: 1px solid var(--slate-800); padding: 12px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; position: relative; }
-        .input-wrapper { flex: 1; position: relative; }
-        .input-wrapper span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.2); pointer-events: none; }
-        .num-input { w-full; width: 100%; background: var(--slate-900); border: 1px solid var(--slate-700); border-radius: 10px; text-align: center; font-weight: 900; font-size: 28px; padding: 8px 32px 8px 8px; outline: none; transition: border 0.2s; }
-        .input-wrapper.lana-input .num-input { color: var(--emerald); }
-        .input-wrapper.lana-input .num-input:focus { border-color: var(--emerald); background: var(--slate-800); }
-        .input-wrapper.lahoma-input .num-input { color: var(--purple); }
-        .input-wrapper.lahoma-input .num-input:focus { border-color: var(--purple); background: var(--slate-800); }
+        /* Chips & Projects */
+        .chip {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            border: 1px solid var(--slate-700);
+            background-color: var(--slate-800);
+            color: var(--slate-400);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .chip:hover { background-color: var(--slate-700); }
+        .chip.active-lana { background-color: var(--emerald-600); color: white; border-color: var(--emerald-500); }
+        .chip.active-lahoma { background-color: var(--purple-600); color: white; border-color: var(--purple-500); }
         
-        .mic-btn { width: 64px; height: 64px; border-radius: 50%; background: var(--indigo); border: 1px solid rgba(255,255,255,0.1); color: white; display: flex; items-center: center; justify-content: center; cursor: pointer; shrink-0: 0; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .mic-btn.listening { background: #e11d48; box-shadow: 0 0 20px #e11d48; animation: pulse 1.5s infinite; }
+        .badge {
+            position: absolute; top: -5px; right: -5px;
+            background: var(--rose-600); color: white; border-radius: 50%; width: 16px; height: 16px;
+            font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--slate-900);
+        }
+
+        .clear-btn { padding: 0.375rem 0.625rem; border-radius: 0.5rem; font-size: 0.75rem; background: rgba(127, 29, 29, 0.5); color: var(--red-400); display: none; }
+        .clear-btn.visible { display: block; }
+
+        /* Mode & Type Toggles */
+        .toggle-group { display: flex; background: var(--slate-900); border-radius: 0.75rem; padding: 0.25rem; border: 1px solid var(--slate-800); gap: 0.25rem; }
+        .toggle-btn { flex: 1; padding: 0.375rem 0; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; color: var(--slate-500); transition: all 0.2s; }
+        .toggle-btn.active-sun { background: var(--indigo-600); color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .toggle-btn.active-hokom { background: var(--indigo-600); color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .toggle-btn.active-lana { background: var(--emerald-600); color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .toggle-btn.active-lahoma { background: var(--purple-600); color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+        /* Points Input Area */
+        .points-area { background: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 1rem; border: 1px solid var(--slate-800); box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+        .huge-input {
+            width: 100%;
+            height: 4.5rem;
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: 900;
+            background: var(--slate-900);
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .huge-input:focus { outline: none; background: var(--slate-800); }
+        #pointsLana { color: var(--emerald-400); border: 1px solid rgba(5, 150, 105, 0.5); }
+        #pointsLana:focus { border-color: var(--emerald-500); }
+        #pointsLahoma { color: var(--purple-400); border: 1px solid rgba(147, 51, 234, 0.5); }
+        #pointsLahoma:focus { border-color: var(--purple-500); }
+        .input-label { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.875rem; font-weight: 900; pointer-events: none; }
+
+        /* Mic Button */
+        .mic-btn {
+            width: 5rem; height: 5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.875rem; transition: all 0.2s; flex-shrink: 0; z-index: 10;
+            background: var(--blue-600); border: 1px solid var(--blue-500); color: white;
+            box-shadow: 0 0 15px rgba(37,99,235,0.4);
+        }
+        .mic-btn:hover { transform: scale(1.05); }
+        .mic-btn.listening {
+            background: var(--rose-600); border-color: var(--rose-400);
+            box-shadow: 0 0 25px var(--rose-600); animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Submit Area */
+        .submit-btn {
+            flex: 1; border-radius: 0.75rem; font-weight: 900; font-size: 1.25rem; height: 3.5rem;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .submit-ready { background: linear-gradient(to right, var(--emerald-500), #0d9488); color: white; box-shadow: 0 5px 20px rgba(16,185,129,0.4); }
+        .submit-disabled { background: var(--slate-800); color: var(--slate-600); border: 1px solid var(--slate-700); }
+        .submit-edit { background: var(--yellow-600); color: white; box-shadow: 0 5px 20px rgba(202,138,4,0.4); }
         
-        .submit-btn { width: 100%; padding: 14px; background: linear-gradient(to right, #10b981, #059669); border: none; color: white; font-weight: 900; font-size: 16px; border-radius: 12px; cursor: pointer; display: block; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
-        .submit-btn:disabled { background: var(--slate-800) !important; color: var(--slate-700) !important; border: 1px solid var(--slate-900); box-shadow: none; cursor: not-allowed; }
+        .cancel-btn {
+            width: 3.5rem; border-radius: 0.75rem; background: var(--slate-800); color: var(--slate-400);
+            border: 1px solid var(--slate-700); display: none; align-items: center; justify-content: center;
+        }
+        .cancel-btn.visible { display: flex; }
 
-        .feedback-bar { text-align: center; font-size: 11px; font-weight: 700; background: var(--slate-900); padding: 6px; border-radius: 6px; border: 1px solid var(--slate-800); display: none; }
-
-        /* Ledger Row */
-        .ledger-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--slate-950); border-bottom: 1px solid var(--slate-800); }
-        .ledger-title { font-size: 12px; font-weight: 700; color: var(--slate-400); }
-        .table-head { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; background: var(--slate-950); padding: 8px; font-size: 10px; font-weight: 700; color: var(--slate-500); border-bottom: 1px solid var(--slate-800); }
-        .table-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; padding: 10px; font-size: 15px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.02); }
-        .badge-type { background: var(--slate-800); padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; width: max-content; margin: 0 auto; border: 1px solid var(--slate-700); color: var(--slate-400); }
-        .diff-lbl { font-size: 11px; color: var(--slate-500); font-family: monospace; }
-
-        /* Winner Overlay */
-        .winner-mask { position: fixed; inset: 0; background: rgba(2,6,23,0.85); backdrop-filter: blur(8px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
-        .winner-card { background: var(--slate-900); border: 1px solid var(--slate-700); border-radius: 24px; padding: 32px; text-align: center; max-width: 340px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+        /* Ledger / History */
+        .ledger-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--slate-900); }
+        .ledger-header { padding: 0.75rem; background: var(--slate-950); border-bottom: 1px solid var(--slate-800); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .history-list { flex: 1; overflow-y: auto; padding-bottom: 1rem; }
+        .history-item {
+            display: grid; grid-template-columns: 1fr auto auto 1fr; gap: 1rem; text-align: center; padding: 0.75rem;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5); cursor: pointer; align-items: center; transition: background 0.2s;
+        }
+        .history-item:hover { background: rgba(30, 41, 59, 0.5); }
+        .history-item.editing { background: rgba(113, 63, 18, 0.2); border-color: rgba(161, 98, 7, 0.5); }
         
-        svg { width: 18px; height: 18px; fill: currentColor; display: inline-block; vertical-align: middle; }
+        /* Modals */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
+            background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(4px); padding: 1rem;
+        }
+        .modal-overlay.visible { display: flex; animation: fadeIn 0.3s ease-out forwards; }
+        .modal-content {
+            background: var(--slate-900); padding: 2rem; border-radius: 1.5rem; border: 1px solid var(--slate-700);
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 24rem; width: 100%;
+            transform: translateY(20px); opacity: 0; animation: slideUp 0.3s ease-out forwards;
+        }
+
+        /* SVG Icons & Utilities */
+        .icon { width: 1em; height: 1em; fill: currentColor; display: inline-block; }
+        .icon-lg { font-size: 1.25em; }
+        .icon-xl { font-size: 1.5em; }
+        
+        .small-btn {
+            padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700;
+            display: flex; align-items: center; gap: 0.25rem; border: 1px solid;
+        }
+        .icon-btn { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid; }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body>
-
-<div class="app-container">
-    <!-- Header -->
-    <div class="header shrink-0">
-        <div class="header-row">
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="modeToggle" class="btn btn-strict">
-                    <svg viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm1 17.93V16h-2v3.93A8 8 0 0 1 4.07 13H8v-2H4.07A8 8 0 0 1 11 4.07V8h2V4.07A8 8 0 0 1 19.93 11H16v2h3.93A8 8 0 0 1 13 19.93z"/></svg>
-                    <span id="modeTxt">حاسبة ذكية</span>
-                </button>
-                <button id="ttsToggle" class="btn btn-circle">
-                    <svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM3 9v6h4l5 5V4L7 9H3z"/></svg>
-                </button>
-            </div>
-            <h1 class="gold-text">بلوت برو</h1>
-            <div>
-                <button id="resetBtn" class="btn btn-circle" style="color:#f43f5e;">
-                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                </button>
-            </div>
-        </div>
+    
+    <div class="app-container">
         
-        <!-- Stacked Racing Bars -->
-        <div class="progress-box">
-            <div class="bar-lane"><div id="barLana" class="bar-fill bar-lana"></div></div>
-            <div class="bar-lane"><div id="barLahoma" class="bar-fill bar-lahoma"></div></div>
-        </div>
-    </div>
-
-    <!-- Scoreboard -->
-    <div class="scoreboard shrink-0">
-        <div class="score-team">
-            <label>لنا (Us)</label>
-            <span id="totLana" class="score-val text-lana">0</span>
-        </div>
-        <button id="announceBtn" class="btn btn-circle" style="background: var(--slate-900);">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-        </button>
-        <div class="score-team">
-            <label>لهم (Them)</label>
-            <span id="totLahoma" class="score-val text-purple">0</span>
-        </div>
-    </div>
-
-    <!-- Central Input Form -->
-    <div class="form-panel shrink-0">
-        <!-- Projects Row -->
-        <div class="project-row">
-            <label>مشاريعنا:</label>
-            <div class="chips-container" id="lanaChips"></div>
-        </div>
-        <div class="project-row">
-            <label>مشاريعهم:</label>
-            <div class="chips-container" id="lahomaChips"></div>
-        </div>
-
-        <!-- Strict Modifiers -->
-        <div class="toggle-grid" id="strictControls">
-            <div class="toggle-box">
-                <button id="typeSun" class="active-indigo">صن</button>
-                <button id="typeHokom">حكم</button>
-            </div>
-            <div class="toggle-box">
-                <button id="buyerLana" class="active-emerald">لنا</button>
-                <button id="buyerLahoma">لهم</button>
+        <!-- Win Modal -->
+        <div id="winModal" class="modal-overlay">
+            <div class="modal-content">
+                <div style="margin-bottom: 1rem; color: #fbbf24; filter: drop-shadow(0 0 15px rgba(251,191,36,0.5));">
+                    <svg class="icon" style="font-size: 3.75rem;" viewBox="0 0 512 512"><path d="M400 0H112a48 48 0 0 0 -48 48v80a48 48 0 0 0 48 48h24v50.5c0 53.6 28.3 101.5 73.1 127.3L256 400l46.9-46.2c44.8-25.8 73.1-73.7 73.1-127.3V176h24a48 48 0 0 0 48-48V48a48 48 0 0 0 -48-48zm-16 128h-24V48h24v80zM96 128V48h24v80H96z"/></svg>
+                </div>
+                <h2 style="font-size: 1.875rem; font-weight: 900; margin-bottom: 0.5rem;">انتهت الصكة!</h2>
+                <p style="font-size: 1.125rem; color: var(--slate-300); margin-bottom: 2rem;">
+                    الفريق الفائز هو:<br>
+                    <strong id="winTeamName" style="display: block; font-size: 2.25rem; margin-top: 0.75rem;"></strong>
+                </p>
+                <div class="flex-col gap-3">
+                    <button onclick="App.resetGame(true)" class="btn-press" style="width: 100%; background: linear-gradient(to right, var(--emerald-500), #0d9488); color: white; padding: 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 1.125rem; box-shadow: 0 10px 15px -3px rgba(5,150,105,0.5);">
+                        <svg class="icon" viewBox="0 0 512 512"><path d="M463.5 224H472c13.3 0 24-10.7 24-24V72c0-9.7-5.8-18.5-14.8-22.2s-19.3-1.7-26.2 5.2L413.4 96.6c-87.6-86.5-228.7-86.2-315.8 1c-87.5 87.5-87.5 229.3 0 316.8s229.3 87.5 316.8 0c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0c-62.5 62.5-163.8 62.5-226.3 0s-62.5-163.8 0-226.3c62.2-62.2 162.7-62.5 225.3-1L327 183c-6.9 6.9-8.9 17.2-5.2 26.2s12.5 14.8 22.2 14.8H463.5z"/></svg> صكة جديدة
+                    </button>
+                    <button onclick="App.dismissWin()" class="btn-press" style="width: 100%; background: var(--slate-800); color: var(--slate-300); border: 1px solid var(--slate-700); padding: 1rem; border-radius: 0.75rem; font-weight: 700;">
+                        استمرار اللعب وتسجيل المزيد
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Inputs Grid -->
-        <div class="input-row">
-            <div class="input-wrapper lana-input">
-                <span>لنا</span>
-                <input type="number" id="inputLana" class="num-input" placeholder="-">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="header-top">
+                <div class="header-actions">
+                    <button id="calcModeBtn" onclick="App.toggleMode()" class="small-btn btn-press">
+                        <svg id="icon-calc" class="icon" viewBox="0 0 512 512"><path d=""/></svg>
+                        <span id="modeText">حاسبة ذكية</span>
+                    </button>
+                    <button id="ttsBtn" onclick="App.toggleTTS()" class="icon-btn btn-press">
+                        <svg id="icon-tts" class="icon" viewBox="0 0 640 512"><path d=""/></svg>
+                    </button>
+                </div>
+                
+                <h1 class="title-gold">بلوت برو</h1>
+                
+                <div class="header-actions">
+                    <!-- PWA Install Button (Hidden by default) -->
+                    <button id="installBtn" style="display: none; background: var(--blue-600); color: white; border-color: var(--blue-500);" class="icon-btn btn-press">
+                        <svg class="icon" viewBox="0 0 512 512"><path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32V274.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V416c0-35.3-28.7-64-64-64H346.5l-45.3 45.3c-25 25-65.5 25-90.5 0L165.5 352H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/></svg>
+                    </button>
+                    <button onclick="App.resetGame()" class="icon-btn btn-press" style="background: var(--slate-800); color: var(--slate-400); border-color: var(--slate-700);">
+                        <svg class="icon" viewBox="0 0 512 512"><path d="M463.5 224H472c13.3 0 24-10.7 24-24V72c0-9.7-5.8-18.5-14.8-22.2s-19.3-1.7-26.2 5.2L413.4 96.6c-87.6-86.5-228.7-86.2-315.8 1c-87.5 87.5-87.5 229.3 0 316.8s229.3 87.5 316.8 0c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0c-62.5 62.5-163.8 62.5-226.3 0s-62.5-163.8 0-226.3c62.2-62.2 162.7-62.5 225.3-1L327 183c-6.9 6.9-8.9 17.2-5.2 26.2s12.5 14.8 22.2 14.8H463.5z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="scoreboard">
+                <div class="progress-bars">
+                    <div class="progress-track" style="border-bottom: 1px solid rgba(15,23,42,0.5);">
+                        <div id="progLana" class="progress-fill" style="background-color: var(--emerald-500); width: 0%;"></div>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progLahoma" class="progress-fill" style="background-color: var(--purple-500); width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="score-col">
+                    <span class="text-xs font-bold" style="color: var(--slate-500); margin-bottom: 0.25rem;">لنا (Us)</span>
+                    <span id="totalLana" class="score-val" style="color: var(--emerald-400);">0</span>
+                </div>
+                
+                <button onclick="App.announceTotals()" class="icon-btn btn-press" style="width: 3rem; height: 3rem; z-index: 10; background: var(--slate-800); color: var(--slate-400); border-color: var(--slate-700); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <svg class="icon icon-lg" viewBox="0 0 512 512"><path d="M480 32c0-12.9-7.8-24.6-19.8-29.6s-25.7-2.2-34.9 6.9L221.7 213H48c-26.5 0-48 21.5-48 48v85.3c0 26.5 21.5 48 48 48h173.7l203.6 203.6c9.2 9.2 22.9 11.9 34.9 6.9s19.8-16.6 19.8-29.6V32z"/></svg>
+                </button>
+                
+                <div class="score-col">
+                    <span class="text-xs font-bold" style="color: var(--slate-500); margin-bottom: 0.25rem;">لهم (Them)</span>
+                    <span id="totalLahoma" class="score-val" style="color: var(--purple-400);">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <div class="main-form">
+            <div id="editIndicator" class="edit-indicator"></div>
+            
+            <!-- Projects -->
+            <div class="flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold" style="color: var(--slate-400);">مشاريعنا:</span>
+                    <div id="projContainerLana" class="flex flex-wrap gap-1 justify-end flex-1">
+                        <!-- Chips inserted by JS -->
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold" style="color: var(--slate-400);">مشاريعهم:</span>
+                    <div id="projContainerLahoma" class="flex flex-wrap gap-1 justify-end flex-1">
+                        <!-- Chips inserted by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Type / Buyer (Hidden in free mode) -->
+            <div id="strictSettings" class="flex gap-3" style="display: grid; grid-template-columns: 1fr 1fr;">
+                <div class="toggle-group">
+                    <button id="typeSunBtn" onclick="App.setType('sun')" class="toggle-btn active-sun">صن</button>
+                    <button id="typeHokomBtn" onclick="App.setType('hokom')" class="toggle-btn">حكم</button>
+                </div>
+                <div class="toggle-group">
+                    <button id="buyerLanaBtn" onclick="App.setBuyer('lana')" class="toggle-btn active-lana">لنا</button>
+                    <button id="buyerLahomaBtn" onclick="App.setBuyer('lahoma')" class="toggle-btn">لهم</button>
+                </div>
+            </div>
+
+            <!-- Huge Points Inputs -->
+            <div class="points-area relative">
+                <div class="flex justify-between items-center gap-4">
+                    <div class="relative flex-1">
+                        <span class="input-label" style="color: rgba(5, 150, 105, 0.5);">لنا</span>
+                        <input id="pointsLana" type="number" class="huge-input" placeholder="-" onfocus="this.select()" oninput="App.handlePoints('lana', this.value)">
+                    </div>
+                    
+                    <button id="micBtn" onclick="App.toggleListening()" class="mic-btn btn-press">
+                        <svg id="icon-mic" class="icon" viewBox="0 0 384 512"><path d="M192 0C139 0 96 43 96 96V256c0 53 43 96 96 96s96-43 96-96V96c0-53-43-96-96-96zM64 216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 89.1 66.2 162.7 152 174.4V480H120c-13.3 0-24 10.7-24 24s10.7 24 24 24h144c13.3 0 24-10.7 24-24s-10.7-24-24-24H216v-49.6c85.8-11.7 152-85.3 152-174.4V216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 70.7-57.3 128-128 128s-128-57.3-128-128v-40z"/></svg>
+                    </button>
+
+                    <div class="relative flex-1">
+                        <span class="input-label" style="color: rgba(147, 51, 234, 0.5);">لهم</span>
+                        <input id="pointsLahoma" type="number" class="huge-input" placeholder="-" onfocus="this.select()" oninput="App.handlePoints('lahoma', this.value)">
+                    </div>
+                </div>
+                
+                <div id="voiceFeedbackDiv" style="display: none; margin-top: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 700; background: var(--slate-950); padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--slate-800);">
+                    <p id="transcriptLog" style="color: var(--slate-400); margin-bottom: 0.25rem;"></p>
+                    <p id="voiceMsg"></p>
+                </div>
+            </div>
+
+            <!-- Submit Row -->
+            <div class="flex gap-3" style="height: 3.5rem;">
+                <button id="submitBtn" onclick="App.submitRound()" class="submit-btn btn-press submit-disabled" disabled>
+                    اعتماد النتيجة
+                </button>
+                <button id="cancelEditBtn" onclick="App.cancelEdit()" class="cancel-btn btn-press">
+                    <svg class="icon icon-lg" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ledger -->
+        <div class="ledger-container">
+            <div class="ledger-header">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold" style="color: var(--slate-400);"><svg class="icon" viewBox="0 0 512 512"><path d="M64 144a48 48 0 1 0 0-96 48 48 0 1 0 0 96zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM64 464a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm48-208a48 48 0 1 0 -96 0 48 48 0 1 0 96 0z"/></svg> السجل</h3>
+                    <button id="undoBtn" onclick="App.handleUndo()" class="small-btn btn-press" style="background: var(--slate-800); color: var(--slate-300); border-color: var(--slate-600);" disabled>
+                        <svg class="icon" viewBox="0 0 512 512"><path d="M48.5 224H40c-13.3 0-24-10.7-24-24V72c0-9.7 5.8-18.5 14.8-22.2s19.3-1.7 26.2 5.2L98.6 96.6c87.6-86.5 228.7-86.2 315.8 1c87.5 87.5 87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3c-62.2-62.2-162.7-62.5-225.3-1L185 183c6.9 6.9 8.9 17.2 5.2 26.2s-12.5 14.8-22.2 14.8H48.5z"/></svg> تراجع
+                    </button>
+                </div>
+                <button id="toggleHistoryBtn" onclick="App.toggleHistory()" class="text-xs font-bold btn-press" style="color: var(--blue-400); display: none;">
+                    عرض السجل كامل <svg id="historyChevron" class="icon" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"/></svg>
+                </button>
             </div>
             
-            <button id="micBtn" class="mic-btn">
-                <svg viewBox="0 0 24 24" style="width:28px; height:28px;"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-            </button>
-
-            <div class="input-wrapper laahoma-input">
-                <span>لهم</span>
-                <input type="number" id="inputLahoma" class="num-input" placeholder="-">
+            <div id="historyList" class="history-list">
+                <!-- Items populated by JS -->
+                <div class="h-full flex flex-col items-center justify-center pb-8" style="color: var(--slate-600); opacity: 0.5; height: 100%;">
+                    <svg class="icon" style="font-size: 2.25rem; margin-bottom: 0.5rem;" viewBox="0 0 512 512"><path d="M304 424V480c0 17.7-14.3 32-32 32s-32-14.3-32-32V424c-53-5.2-111-23.7-160.7-61C47.2 338.5 24.3 293.4 12 245.4c-12.8-50 4.1-102.3 43-138.8C91.4 72.5 140 50.8 190.5 46.7c86.5-6.9 166.7 48.9 224.2 115c26.7 30.7 58.7 75.3 62.4 121.8c2.9 36.3-10.4 73.1-34.5 101.5C407.7 425.4 358.3 435.5 304 424zM256 96a160 160 0 1 0 0 320 160 160 0 1 0 0-320zM224 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"/></svg>
+                    <span class="text-sm">لا توجد جولات مسجلة</span>
+                </div>
             </div>
         </div>
-
-        <div id="feedback" class="feedback-bar"></div>
-
-        <button id="submitBtn" class="submit-btn" disabled>اعتماد النتيجة</button>
     </div>
 
-    <!-- Ledger List -->
-    <div class="ledger-header shrink-0">
-        <div class="ledger-title">سجل الجولات</div>
-        <button id="undoBtn" class="btn" disabled>
-            <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
-            تراجع
-        </button>
-    </div>
-    <div class="table-head shrink-0">
-        <div>لنا</div><div>النوع</div><div>الفرق</div><div>لهم</div>
-    </div>
-    <div class="flex-1" id="ledgerBody"></div>
-</div>
+    <!-- Application Logic -->
+    <script>
+        // PWA Setup (Single File)
+        (function setupPWA() {
+            const manifest = {
+                name: "Baloot Pro - بلوت برو",
+                short_name: "Baloot Pro",
+                start_url: location.href,
+                display: "standalone",
+                background_color: "#0f172a",
+                theme_color: "#0f172a",
+                icons: [{
+                    src: "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%2310b981' d='M480 32c0-12.9-7.8-24.6-19.8-29.6s-25.7-2.2-34.9 6.9L221.7 213H48c-26.5 0-48 21.5-48 48v85.3c0 26.5 21.5 48 48 48h173.7l203.6 203.6c9.2 9.2 22.9 11.9 34.9 6.9s19.8-16.6 19.8-29.6V32z'/%3E%3C/svg%3E",
+                    sizes: "512x512",
+                    type: "image/svg+xml"
+                }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+            document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
 
-<!-- Winner Backdrop -->
-<div class="winner-mask" id="winnerModal">
-    <div class="winner-card">
-        <svg viewBox="0 0 24 24" style="width:72px; height:72px; color:#fbbf24; margin-bottom:16px;"><path d="M18 2H6c-1.1 0-2 .9-2 2v3c0 2.24 1.76 4.09 4 4.42V18c0 1.1.9 2 2 2h1v2h4v-2h1c1.1 0 2-.9 2-2v-6.58c2.24-.33 4-2.18 4-4.42V4c0-1.1-.9-2-2-2zm-12 5V4h2v3c0 .55-.45 1-1 1s-1-.45-1-1zm12 0c0 .55-.45 1-1 1s-1-.45-1-1V4h2v3z"/></svg>
-        <h2 style="font-size:28px; font-weight:900; margin-bottom:8px;">انتهت الصكة!</h2>
-        <p style="font-size:16px; color:var(--slate-400); margin-bottom:24px;">الفريق الفائز: <strong id="winnerName" style="font-size:24px; display:block; margin-top:8px;"></strong></p>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            <button id="winReset" class="submit-btn">صكة جديدة</button>
-            <button id="winContinue" class="btn" style="width:100%; padding:12px; justify-content:center;">استمرار اللعب</button>
-        </div>
-    </div>
-</div>
+            const swCode = `
+                const CACHE_NAME = 'baloot-pro-v1';
+                self.addEventListener('install', e => {
+                    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll([location.href])));
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'text/javascript'});
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+            }
 
-<script>
-    // State Engine
-    let history = [];
-    let calcMode = 'strict'; // 'strict' | 'free'
-    let ttsEnabled = false;
-    let dismissedWin = false;
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installBtn').style.display = 'flex';
+            });
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+                    deferredPrompt = null;
+                }
+            });
+        })();
 
-    let form = {
-        type: 'sun', buyer: 'lana',
-        projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
-        pointsLana: '', pointsLahoma: ''
-    };
+        // Icon Paths
+        const ICONS = {
+            brain: "M184 112a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zm-73.4 99.4c17.5 7.1 36 12 55.4 14.1V272c0 26.5 21.5 48 48 48h32v48H224c-26.5 0-48 21.5-48 48v48H80c-26.5 0-48-21.5-48-48V368c0-26.5 21.5-48 48-48h16V298.1c-22.3-5.2-43.1-14.7-61.1-27.8c-12-8.7-27.1-11-41-6.1S-5.7 279.7 .9 294l60 131.9C69.4 444.6 86.8 456 106.3 456H256v64c0 17.7 14.3 32 32 32h160c17.7 0 32-14.3 32-32V393c0-12.6-7.4-24.1-19-29.2L349 314.9V272h35c26.5 0 48-21.5 48-48V192h16c26.5 0 48-21.5 48-48s-21.5-48-48-48H432c0-17.7-14.3-32-32-32H288c-17.7 0-32 14.3-32 32v16H231.1c28.6-26.7 48.9-63.5 48.9-104C280 44.8 235.2 0 180 0c-35 0-65.7 18.2-82.6 45.6c-4.4 7.2-10 13.9-16.7 19.8l-1.9 1.6C65.5 78.4 57 97 57 117c0 30 19 56.4 46.5 67l7.1 2.7z",
+            unlock: "M224 16c-6.6 0-12 5.4-12 12v40 44C86.4 125.7 0 239.2 0 376V496c0 8.8 7.2 16 16 16h480c8.8 0 16-7.2 16-16V376c0-136.8-86.4-250.3-212-264V68 28c0-6.6-5.4-12-12-12h-64z",
+            volHigh: "M533.6 32.5C598.5 85.3 640 165.8 640 256s-41.5 170.8-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8l134.9-119.9c9.4-8.4 22.9-10.5 34.4-5.3z",
+            volMute: "M320 64c0-12.6-7.4-24-18.9-29.2s-25-3.1-34.4 5.3L131.8 160H64c-35.3 0-64 28.7-64 64v128c0 35.3 28.7 64 64 64h67.8l134.9 119.9c9.4 8.4 22.9 10.5 34.4 5.3s18.9-16.6 18.9-29.2V64zM412.5 183.5c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l47 47-47 47c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l47-47 47 47c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-47-47 47-47c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-47 47-47-47z",
+            mic: "M192 0C139 0 96 43 96 96V256c0 53 43 96 96 96s96-43 96-96V96c0-53-43-96-96-96zM64 216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 89.1 66.2 162.7 152 174.4V480H120c-13.3 0-24 10.7-24 24s10.7 24 24 24h144c13.3 0 24-10.7 24-24s-10.7-24-24-24H216v-49.6c85.8-11.7 152-85.3 152-174.4V216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 70.7-57.3 128-128 128s-128-57.3-128-128v-40z",
+            stop: "M144 144v224c0 8.8 7.2 16 16 16h64c8.8 0 16-7.2 16-16V144c0-8.8-7.2-16-16-16h-64c-8.8 0-16 7.2-16 16zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM224 96H160c-26.5 0-48 21.5-48 48v224c0 26.5 21.5 48 48 48h64c26.5 0 48-21.5 48-48V144c0-26.5-21.5-48-48-48z",
+            chevronUp: "M233.4 105.4c12.5-12.5 32.8-12.5 45.3 0l192 192c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L256 173.3 86.6 342.6c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3l192-192z",
+            chevronDown: "M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"
+        };
 
-    // Recognition Config
-    let isListening = false;
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = SpeechRecognition ? new SpeechRecognition() : null;
-    if (recognition) {
-        recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'ar-SA';
-    }
+        const SakahLimit = 152;
+        const PROJECT_DEF = [
+            { key: 'sira', label: 'سرا' }, { key: 'fifty', label: 'خمسين' },
+            { key: 'hundred', label: 'مية' }, { key: 'fourHundred', label: 'اربعمية' }, { key: 'baloot', label: 'بلوت' }
+        ];
 
-    // Elements Cache
-    const el = (id) => document.getElementById(id);
+        const DEFAULT_NUMBERS = {
+            "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
+            "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,"سبعه":7,"سبعة":7,
+            "ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,"عشر":10,"عشره":10,"عشرة":10,
+            "احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,"تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,
+            "خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,"ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,
+            "واحد وعشرين":21,"اثنين وعشرين":22,"ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
+        };
 
-    // Initializer
-    window.addEventListener('DOMContentLoaded', () => {
-        try {
-            if(localStorage.getItem('b_hist')) history = JSON.parse(localStorage.getItem('b_hist'));
-            if(localStorage.getItem('b_mode')) calcMode = localStorage.getItem('b_mode');
-            if(localStorage.getItem('b_tts')) ttsEnabled = localStorage.getItem('b_tts') === 'true';
-        } catch(e){}
-        
-        setupFormListeners();
-        setupVoice();
-        render();
-    });
+        const DEFAULT_TARGETS = {
+            "لنا": "lana", "إحنا": "lana", "نحن": "lana", "حنا": "lana", "معنا": "lana", "حقنا": "lana", "النا": "lana",
+            "لهم": "lahoma", "هم": "lahoma", "خصم": "lahoma", "ضدهم": "lahoma", "هما": "lahoma", "الهم": "lahoma", "معهم": "lahoma"
+        };
 
-    function setupFormListeners() {
-        el('modeToggle').addEventListener('click', () => {
-            calcMode = calcMode === 'strict' ? 'free' : 'strict';
-            form.pointsLana = ''; form.pointsLahoma = '';
-            render();
-        });
-        el('ttsToggle').addEventListener('click', () => { ttsEnabled = !ttsEnabled; render(); });
-        el('resetBtn').addEventListener('click', resetGame);
-        el('undoBtn').addEventListener('click', handleUndo);
-        el('announceBtn').addEventListener('click', () => announce(true));
+        const blankForm = {
+            type: 'sun', buyer: 'lana',
+            projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
+            pointsLana: '', pointsLahoma: ''
+        };
 
-        el('typeSun').addEventListener('click', () => { form.type = 'sun'; form.pointsLana = ''; form.pointsLahoma = ''; render(); });
-        el('typeHokom').addEventListener('click', () => { form.type = 'hokom'; form.pointsLana = ''; form.pointsLahoma = ''; render(); });
-        el('buyerLana').addEventListener('click', () => { form.buyer = 'lana'; render(); });
-        el('buyerLahoma').addEventListener('click', () => { form.buyer = 'lahoma'; render(); });
+        const state = {
+            history: [],
+            historyExpanded: false,
+            calcMode: 'strict',
+            ttsEnabled: false,
+            editingId: null,
+            dismissedWin: false,
+            form: JSON.parse(JSON.stringify(blankForm)),
+            isListening: false,
+            transcriptLog: "",
+            voiceFeedback: ""
+        };
 
-        // Input Calc Overwrites
-        ['inputLana', 'inputLahoma'].forEach(id => {
-            const input = el(id);
-            input.addEventListener('focus', () => input.select());
-            input.addEventListener('input', (e) => {
-                let team = id === 'inputLana' ? 'lana' : 'lahoma';
-                let valStr = e.target.value.replace(/^0+/, '');
-                if (valStr === '') { form.pointsLana = ''; form.pointsLahoma = ''; render(); return; }
+        const dom = {
+            calcModeBtn: document.getElementById('calcModeBtn'),
+            iconCalc: document.getElementById('icon-calc'),
+            modeText: document.getElementById('modeText'),
+            ttsBtn: document.getElementById('ttsBtn'),
+            iconTts: document.getElementById('icon-tts'),
+            totalLana: document.getElementById('totalLana'),
+            totalLahoma: document.getElementById('totalLahoma'),
+            progLana: document.getElementById('progLana'),
+            progLahoma: document.getElementById('progLahoma'),
+            projContainerLana: document.getElementById('projContainerLana'),
+            projContainerLahoma: document.getElementById('projContainerLahoma'),
+            strictSettings: document.getElementById('strictSettings'),
+            typeSunBtn: document.getElementById('typeSunBtn'),
+            typeHokomBtn: document.getElementById('typeHokomBtn'),
+            buyerLanaBtn: document.getElementById('buyerLanaBtn'),
+            buyerLahomaBtn: document.getElementById('buyerLahomaBtn'),
+            pointsLana: document.getElementById('pointsLana'),
+            pointsLahoma: document.getElementById('pointsLahoma'),
+            micBtn: document.getElementById('micBtn'),
+            iconMic: document.getElementById('icon-mic'),
+            voiceFeedbackDiv: document.getElementById('voiceFeedbackDiv'),
+            transcriptLog: document.getElementById('transcriptLog'),
+            voiceMsg: document.getElementById('voiceMsg'),
+            submitBtn: document.getElementById('submitBtn'),
+            cancelEditBtn: document.getElementById('cancelEditBtn'),
+            undoBtn: document.getElementById('undoBtn'),
+            toggleHistoryBtn: document.getElementById('toggleHistoryBtn'),
+            historyChevron: document.getElementById('historyChevron'),
+            historyList: document.getElementById('historyList'),
+            winModal: document.getElementById('winModal'),
+            winTeamName: document.getElementById('winTeamName'),
+            editIndicator: document.getElementById('editIndicator')
+        };
+
+        const App = {
+            recognition: null,
+
+            init() {
+                this.loadData();
+                this.setupRecognition();
+                this.renderAll();
+            },
+
+            loadData() {
+                try {
+                    const h = localStorage.getItem('balootProHistoryV11');
+                    if (h) state.history = JSON.parse(h);
+                    const m = localStorage.getItem('balootProMode');
+                    if (m) state.calcMode = m;
+                    const t = localStorage.getItem('balootProTTS');
+                    if (t) state.ttsEnabled = t === 'true';
+                } catch(e) {}
+            },
+
+            saveData() {
+                localStorage.setItem('balootProHistoryV11', JSON.stringify(state.history));
+                localStorage.setItem('balootProMode', state.calcMode);
+                localStorage.setItem('balootProTTS', state.ttsEnabled);
+            },
+
+            setupRecognition() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.continuous = false;
+                    this.recognition.interimResults = false;
+                    this.recognition.lang = 'ar-SA';
+                    
+                    this.recognition.onstart = () => {
+                        state.isListening = true;
+                        state.voiceFeedback = "أستمع... (مثال: 'لنا 5 ولهم 20')";
+                        this.renderVoice();
+                    };
+                    
+                    this.recognition.onresult = (e) => {
+                        const transcript = e.results[0][0].transcript;
+                        state.transcriptLog = transcript;
+                        this.processTranscript(transcript);
+                    };
+                    
+                    this.recognition.onerror = () => {
+                        state.voiceFeedback = "❌ لم أسمع بوضوح.";
+                        state.isListening = false;
+                        this.renderVoice();
+                    };
+                    
+                    this.recognition.onend = () => {
+                        state.isListening = false;
+                        this.renderVoice();
+                    };
+                }
+            },
+
+            processTranscript(transcript) {
+                let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
+                text = text.replace(/(\d+)/g, ' $1 '); 
+                
+                let parsedLana = null;
+                let parsedLahoma = null;
+                let currentTarget = state.form.buyer;
+                const words = text.split(/\s+/).filter(w => w);
+                let i = 0;
+                
+                while (i < words.length) {
+                    let foundNum = null;
+                    let skip = 1;
+                    if (i < words.length - 1) {
+                        const two = words[i] + " " + words[i+1];
+                        if (DEFAULT_NUMBERS[two] !== undefined) { foundNum = DEFAULT_NUMBERS[two]; skip = 2; }
+                    }
+                    if (foundNum === null) {
+                        const one = words[i];
+                        if (DEFAULT_NUMBERS[one] !== undefined) foundNum = DEFAULT_NUMBERS[one];
+                        else if (/\d+/.test(one)) foundNum = parseInt(one, 10);
+                        else if (DEFAULT_TARGETS[one] !== undefined) currentTarget = DEFAULT_TARGETS[one];
+                    }
+                    if (foundNum !== null) {
+                        if (currentTarget === 'lana') parsedLana = foundNum;
+                        else parsedLahoma = foundNum;
+                    }
+                    i += skip;
+                }
+
+                const max = state.form.type === 'sun' ? 26 : 16;
+                let updateLana = parsedLana !== null ? parsedLana : state.form.pointsLana;
+                let updateLahoma = parsedLahoma !== null ? parsedLahoma : state.form.pointsLahoma;
+
+                if (state.calcMode === 'strict') {
+                    if (parsedLana !== null && parsedLahoma !== null) {
+                        if (parsedLana > max) parsedLana = max;
+                        if (parsedLahoma > max) parsedLahoma = max;
+                        updateLana = parsedLana; updateLahoma = parsedLahoma;
+                    } else if (parsedLana !== null) {
+                        if (parsedLana > max) parsedLana = max;
+                        updateLana = parsedLana; updateLahoma = max - parsedLana;
+                    } else if (parsedLahoma !== null) {
+                        if (parsedLahoma > max) parsedLahoma = max;
+                        updateLahoma = parsedLahoma; updateLana = max - parsedLahoma;
+                    }
+                } else {
+                    if (parsedLana !== null) updateLana = parsedLana;
+                    if (parsedLahoma !== null) updateLahoma = parsedLahoma;
+                }
+
+                if (parsedLana !== null || parsedLahoma !== null) {
+                    state.form.pointsLana = updateLana;
+                    state.form.pointsLahoma = updateLahoma;
+                    let fb = "✅ سجلت:";
+                    if (parsedLana !== null) fb += ` لنا ${updateLana}`;
+                    if (parsedLahoma !== null) fb += (parsedLana !== null ? " و" : "") + ` لهم ${updateLahoma}`;
+                    state.voiceFeedback = fb;
+                    this.renderForm();
+                } else {
+                    state.voiceFeedback = "❌ لم التقط أي أرقام.";
+                }
+                this.renderVoice();
+            },
+
+            toggleListening() {
+                if (!this.recognition) return alert("المتصفح لا يدعم الصوت.");
+                if (state.isListening) this.recognition.stop();
+                else { state.transcriptLog = ""; this.recognition.start(); }
+            },
+
+            toggleMode() {
+                state.calcMode = state.calcMode === 'strict' ? 'free' : 'strict';
+                this.saveData();
+                this.renderHeader();
+                this.renderForm();
+            },
+
+            toggleTTS() {
+                state.ttsEnabled = !state.ttsEnabled;
+                this.saveData();
+                this.renderHeader();
+            },
+
+            setType(type) { state.form.type = type; state.form.pointsLana = ''; state.form.pointsLahoma = ''; this.renderForm(); },
+            setBuyer(buyer) { state.form.buyer = buyer; this.renderForm(); },
+
+            handleProjectClick(team, pKey) {
+                state.form.projects[team][pKey]++;
+                this.renderProjects();
+                this.renderSubmit();
+            },
+            
+            clearProjects(team) {
+                state.form.projects[team] = { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 };
+                this.renderProjects();
+                this.renderSubmit();
+            },
+
+            handlePoints(team, valStr) {
+                valStr = valStr.replace(/^0+/, '');
+                if (valStr === '') {
+                    state.form[team === 'lana' ? 'pointsLana' : 'pointsLahoma'] = '';
+                    this.renderForm(true); return;
+                }
                 let val = parseInt(valStr, 10);
                 if (isNaN(val)) return;
 
-                if (calcMode === 'strict') {
-                    const max = form.type === 'sun' ? 26 : 16;
-                    if (val > max) val = parseInt(valStr.slice(-1), 10);
-                    if (team === 'lana') { form.pointsLana = val; form.pointsLahoma = max - val; }
-                    else { form.pointsLahoma = val; form.pointsLana = max - val; }
+                if (state.calcMode === 'strict') {
+                    const max = state.form.type === 'sun' ? 26 : 16;
+                    if (val > max) { valStr = valStr.slice(-1); val = parseInt(valStr, 10); }
+                    if (team === 'lana') { state.form.pointsLana = val; state.form.pointsLahoma = max - val; }
+                    else { state.form.pointsLahoma = val; state.form.pointsLana = max - val; }
                 } else {
-                    if (team === 'lana') form.pointsLana = val; else form.pointsLahoma = val;
+                    if (team === 'lana') state.form.pointsLana = val;
+                    else state.form.pointsLahoma = val;
                 }
-                render();
-            });
-        });
+                this.renderForm(true);
+            },
 
-        el('submitBtn').addEventListener('click', submitRound);
-        el('winReset').addEventListener('click', () => { dismissedWin = false; resetGame(); el('winnerModal').style.display='none'; });
-        el('winContinue').addEventListener('click', () => { dismissedWin = true; el('winnerModal').style.display='none'; render(); });
-    }
+            calcProjectPts(team, type) {
+                const p = state.form.projects[team];
+                let t = 0;
+                if (type === 'sun') t += p.sira*4 + p.fifty*10 + p.hundred*20 + p.fourHundred*40;
+                else t += p.sira*2 + p.fifty*5 + p.hundred*10 + p.baloot*2;
+                return t;
+            },
 
-    function setupVoice() {
-        if (!recognition) { el('micBtn').style.opacity = '0.3'; return; }
-        el('micBtn').addEventListener('click', () => {
-            if (isListening) recognition.stop(); else { el('feedback').style.display='block'; el('feedback').innerText="أستمع..."; recognition.start(); }
-        });
+            getResults() {
+                let baseLana = parseInt(state.form.pointsLana) || 0;
+                let baseLahoma = parseInt(state.form.pointsLahoma) || 0;
+                let pLana = this.calcProjectPts('lana', state.form.type);
+                let pLahoma = this.calcProjectPts('lahoma', state.form.type);
+                
+                let totLana = 0, totLahoma = 0, lossMsg = "", ready = false;
 
-        recognition.onstart = () => { isListening = true; el('micBtn').classList.add('listening'); };
-        recognition.onend = () => { isListening = false; el('micBtn').classList.remove('listening'); };
-        recognition.onerror = () => { el('feedback').innerText = "❌ لم أسمع بوضوح."; };
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            processVoice(transcript);
+                if (state.calcMode === 'free') {
+                    totLana = baseLana + pLana; totLahoma = baseLahoma + pLahoma;
+                    ready = state.form.pointsLana !== '' && state.form.pointsLahoma !== '';
+                } else {
+                    let maxPts = state.form.type === 'sun' ? 26 : 16;
+                    let kabootPts = state.form.type === 'sun' ? 44 : 26;
+                    ready = (baseLana + baseLahoma === maxPts);
+
+                    if (ready) {
+                        if (baseLana === maxPts) { totLana = kabootPts + pLana + pLahoma; totLahoma = 0; lossMsg = "كبوت لنا! 🔥"; }
+                        else if (baseLahoma === maxPts) { totLahoma = kabootPts + pLana + pLahoma; totLana = 0; lossMsg = "كبوت لهم! 💀"; }
+                        else {
+                            let rL = baseLana + pLana, rH = baseLahoma + pLahoma;
+                            if (state.form.buyer === 'lana' && rL <= rH) { totLahoma = maxPts + pLana + pLahoma; totLana = 0; lossMsg = "سقطنا 💔"; }
+                            else if (state.form.buyer === 'lahoma' && rH <= rL) { totLana = maxPts + pLana + pLahoma; totLahoma = 0; lossMsg = "طيحناهم 🏆"; }
+                            else { totLana = rL; totLahoma = rH; }
+                        }
+                    }
+                }
+                return { totLana, totLahoma, lossMsg, ready };
+            },
+
+            submitRound() {
+                const r = this.getResults();
+                if (!r.ready) return;
+
+                const round = {
+                    id: state.editingId || Date.now(),
+                    lana: r.totLana,
+                    lahoma: r.totLahoma,
+                    details: state.calcMode === 'strict' ? (state.form.type === 'sun' ? 'صن' : 'حكم') : 'حر',
+                    snapshot: JSON.parse(JSON.stringify({ ...state.form, calcMode: state.calcMode }))
+                };
+
+                if (state.editingId) {
+                    state.history = state.history.map(x => x.id === state.editingId ? round : x);
+                    state.editingId = null;
+                } else {
+                    state.history.unshift(round);
+                }
+
+                state.form = JSON.parse(JSON.stringify(blankForm));
+                state.transcriptLog = ""; state.voiceFeedback = "";
+                this.saveData();
+                this.renderAll();
+                
+                const tL = state.history.reduce((s, c) => s + c.lana, 0);
+                const tH = state.history.reduce((s, c) => s + c.lahoma, 0);
+                this.announceText(`لنا ${tL}، ولهم ${tH}.`);
+            },
+
+            handleUndo() {
+                if (state.history.length === 0) return;
+                const last = state.history[0];
+                state.form = JSON.parse(JSON.stringify(last.snapshot));
+                state.calcMode = last.snapshot.calcMode || 'strict';
+                state.history.shift();
+                state.editingId = last.id;
+                this.saveData();
+                this.renderAll();
+            },
+
+            cancelEdit() {
+                state.editingId = null;
+                state.form = JSON.parse(JSON.stringify(blankForm));
+                this.renderAll();
+            },
+
+            resetGame(force = false) {
+                if (force || confirm("تصفير النتيجة والبدء من جديد؟")) {
+                    state.history = []; state.editingId = null; state.dismissedWin = false;
+                    state.form = JSON.parse(JSON.stringify(blankForm));
+                    this.saveData(); this.renderAll();
+                }
+            },
+
+            dismissWin() { state.dismissedWin = true; dom.winModal.classList.remove('visible'); },
+            toggleHistory() { state.historyExpanded = !state.historyExpanded; this.renderHistory(); },
+
+            announceText(txt) {
+                if (!state.ttsEnabled) return;
+                window.speechSynthesis.cancel();
+                let u = new SpeechSynthesisUtterance(txt);
+                u.lang = 'ar-SA'; u.rate = 1.05;
+                window.speechSynthesis.speak(u);
+            },
+            announceTotals() {
+                const tL = state.history.reduce((s, c) => s + c.lana, 0);
+                const tH = state.history.reduce((s, c) => s + c.lahoma, 0);
+                this.announceText(`لنا ${tL}، ولهم ${tH}.`);
+            },
+
+            // Rendering Logic
+            renderAll() {
+                this.renderHeader(); this.renderScoreboard(); this.renderForm(); this.renderHistory();
+            },
+
+            renderHeader() {
+                dom.iconCalc.innerHTML = `<path d="${state.calcMode === 'strict' ? ICONS.brain : ICONS.unlock}"/>`;
+                dom.modeText.innerText = state.calcMode === 'strict' ? 'حاسبة ذكية' : 'حاسبة حرة';
+                
+                dom.calcModeBtn.style.background = state.calcMode === 'strict' ? 'rgba(49, 46, 129, 0.5)' : 'rgba(120, 53, 15, 0.5)';
+                dom.calcModeBtn.style.color = state.calcMode === 'strict' ? '#a5b4fc' : '#fcd34d';
+                dom.calcModeBtn.style.borderColor = state.calcMode === 'strict' ? 'rgba(67, 56, 202, 0.5)' : 'rgba(180, 83, 9, 0.5)';
+
+                dom.iconTts.innerHTML = `<path d="${state.ttsEnabled ? ICONS.volHigh : ICONS.volMute}"/>`;
+                dom.ttsBtn.style.background = state.ttsEnabled ? 'rgba(6, 78, 59, 0.5)' : 'var(--slate-800)';
+                dom.ttsBtn.style.color = state.ttsEnabled ? 'var(--emerald-400)' : 'var(--slate-500)';
+                dom.ttsBtn.style.borderColor = state.ttsEnabled ? 'rgba(4, 120, 87, 0.5)' : 'var(--slate-700)';
+            },
+
+            renderScoreboard() {
+                const tL = state.history.reduce((s, c) => s + c.lana, 0);
+                const tH = state.history.reduce((s, c) => s + c.lahoma, 0);
+                
+                dom.totalLana.innerText = tL; dom.totalLahoma.innerText = tH;
+                dom.progLana.style.width = `${Math.min((tL/SakahLimit)*100, 100)}%`;
+                dom.progLahoma.style.width = `${Math.min((tH/SakahLimit)*100, 100)}%`;
+
+                if ((tL >= SakahLimit || tH >= SakahLimit) && !state.dismissedWin) {
+                    dom.winTeamName.innerText = tL >= SakahLimit ? 'لنا (Us)' : 'لهم (Them)';
+                    dom.winTeamName.style.color = tL >= SakahLimit ? 'var(--emerald-400)' : 'var(--purple-400)';
+                    dom.winModal.classList.add('visible');
+                } else if (tL < SakahLimit && tH < SakahLimit) {
+                    state.dismissedWin = false;
+                    dom.winModal.classList.remove('visible');
+                }
+            },
+
+            renderForm(skipInputs = false) {
+                if (state.editingId) dom.editIndicator.classList.add('active');
+                else dom.editIndicator.classList.remove('active');
+
+                this.renderProjects();
+                
+                dom.strictSettings.style.display = state.calcMode === 'strict' ? 'grid' : 'none';
+                dom.typeSunBtn.className = `toggle-btn ${state.form.type === 'sun' ? 'active-sun' : ''}`;
+                dom.typeHokomBtn.className = `toggle-btn ${state.form.type === 'hokom' ? 'active-hokom' : ''}`;
+                dom.buyerLanaBtn.className = `toggle-btn ${state.form.buyer === 'lana' ? 'active-lana' : ''}`;
+                dom.buyerLahomaBtn.className = `toggle-btn ${state.form.buyer === 'lahoma' ? 'active-lahoma' : ''}`;
+
+                if (!skipInputs) {
+                    dom.pointsLana.value = state.form.pointsLana;
+                    dom.pointsLahoma.value = state.form.pointsLahoma;
+                }
+                
+                this.renderVoice();
+                this.renderSubmit();
+            },
+
+            renderProjects() {
+                const buildChips = (team) => {
+                    let html = '';
+                    const hasAny = Object.values(state.form.projects[team]).some(v => v > 0);
+                    PROJECT_DEF.forEach(p => {
+                        const v = state.form.projects[team][p.key];
+                        const activeCls = v > 0 ? (team === 'lana' ? 'active-lana' : 'active-lahoma') : '';
+                        const badge = v > 0 ? `<span class="badge">${v}</span>` : '';
+                        html += `<button onclick="App.handleProjectClick('${team}', '${p.key}')" class="chip btn-press ${activeCls}">${p.label} ${badge}</button>`;
+                    });
+                    if (hasAny) html += `<button onclick="App.clearProjects('${team}')" class="clear-btn btn-press visible"><svg class="icon" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg></button>`;
+                    return html;
+                };
+                dom.projContainerLana.innerHTML = buildChips('lana');
+                dom.projContainerLahoma.innerHTML = buildChips('lahoma');
+            },
+
+            renderVoice() {
+                dom.iconMic.innerHTML = `<path d="${state.isListening ? ICONS.stop : ICONS.mic}"/>`;
+                if (state.isListening) dom.micBtn.classList.add('listening');
+                else dom.micBtn.classList.remove('listening');
+
+                if (state.transcriptLog || state.voiceFeedback) {
+                    dom.voiceFeedbackDiv.style.display = 'block';
+                    dom.transcriptLog.innerHTML = state.transcriptLog ? `سمعت: <span style="color: white;">"${state.transcriptLog}"</span>` : '';
+                    dom.voiceMsg.innerText = state.voiceFeedback;
+                    dom.voiceMsg.style.color = state.voiceFeedback.includes('✅') ? 'var(--emerald-400)' : 'var(--rose-400)';
+                } else {
+                    dom.voiceFeedbackDiv.style.display = 'none';
+                }
+            },
+
+            renderSubmit() {
+                const r = this.getResults();
+                if (r.ready) {
+                    dom.submitBtn.disabled = false;
+                    dom.submitBtn.className = `submit-btn btn-press ${state.editingId ? 'submit-edit' : 'submit-ready'}`;
+                    dom.submitBtn.innerText = state.editingId ? 'تحديث الجولة' : (r.lossMsg ? `تسجيل (${r.lossMsg})` : 'اعتماد النتيجة');
+                } else {
+                    dom.submitBtn.disabled = true;
+                    dom.submitBtn.className = 'submit-btn btn-press submit-disabled';
+                    dom.submitBtn.innerText = state.editingId ? 'تحديث الجولة' : 'اعتماد النتيجة';
+                }
+                dom.cancelEditBtn.className = `cancel-btn btn-press ${state.editingId ? 'visible' : ''}`;
+            },
+
+            renderHistory() {
+                dom.undoBtn.disabled = state.history.length === 0 || state.editingId;
+                dom.toggleHistoryBtn.style.display = state.history.length > 3 ? 'flex' : 'none';
+                dom.historyChevron.innerHTML = `<path d="${state.historyExpanded ? ICONS.chevronUp : ICONS.chevronDown}"/>`;
+                dom.toggleHistoryBtn.innerHTML = `${state.historyExpanded ? 'طي السجل' : 'عرض السجل كامل'} <svg class="icon"><path d="${state.historyExpanded ? ICONS.chevronUp : ICONS.chevronDown}"/></svg>`;
+
+                if (state.history.length === 0) {
+                    dom.historyList.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center pb-8" style="color: var(--slate-600); opacity: 0.5; height: 100%;">
+                            <svg class="icon" style="font-size: 2.25rem; margin-bottom: 0.5rem;" viewBox="0 0 512 512"><path d="M304 424V480c0 17.7-14.3 32-32 32s-32-14.3-32-32V424c-53-5.2-111-23.7-160.7-61C47.2 338.5 24.3 293.4 12 245.4c-12.8-50 4.1-102.3 43-138.8C91.4 72.5 140 50.8 190.5 46.7c86.5-6.9 166.7 48.9 224.2 115c26.7 30.7 58.7 75.3 62.4 121.8c2.9 36.3-10.4 73.1-34.5 101.5C407.7 425.4 358.3 435.5 304 424zM256 96a160 160 0 1 0 0 320 160 160 0 1 0 0-320zM224 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"/></svg>
+                            <span class="text-sm">لا توجد جولات مسجلة</span>
+                        </div>`;
+                    return;
+                }
+
+                const disp = state.historyExpanded ? state.history : state.history.slice(0, 3);
+                let html = '';
+                disp.forEach(r => {
+                    const isEditing = state.editingId === r.id;
+                    html += `
+                        <div class="history-item ${isEditing ? 'editing' : ''}" onclick="App.editRound(${r.id})">
+                            <div style="color: var(--emerald-400); font-weight: 900; font-size: 1.125rem;">${r.lana}</div>
+                            <div style="color: var(--slate-400); font-size: 0.625rem; font-weight: 700; background: var(--slate-800); padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid var(--slate-700);">${r.details}</div>
+                            <div style="color: var(--slate-500); font-size: 0.75rem; background: var(--slate-900); padding: 0.25rem; border-radius: 0.25rem; border: 1px solid var(--slate-800); font-family: monospace;">${Math.abs(r.lana - r.lahoma)}</div>
+                            <div style="color: var(--purple-400); font-weight: 900; font-size: 1.125rem;">${r.lahoma}</div>
+                        </div>`;
+                });
+                dom.historyList.innerHTML = html;
+            },
+
+            editRound(id) {
+                const r = state.history.find(x => x.id === id);
+                if (r) {
+                    state.editingId = id;
+                    state.form = JSON.parse(JSON.stringify(r.snapshot));
+                    state.calcMode = r.snapshot.calcMode || 'strict';
+                    this.renderAll();
+                }
+            }
         };
-    }
 
-    function processVoice(transcript) {
-        let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
-        text = text.replace(/(\d+)/g, ' $1 ');
-
-        let parsedLana = null; let parsedLahoma = null;
-        let currentTarget = form.buyer;
-
-        const words = text.split(/\s+/).filter(w => w);
-        let i = 0;
-        while (i < words.length) {
-            let foundNum = null; let skip = 1;
-            if (i < words.length - 1) {
-                const two = words[i] + " " + words[i+1];
-                if (DEFAULT_NUMBERS[two] !== undefined) { foundNum = DEFAULT_NUMBERS[two]; skip = 2; }
-            }
-            if (foundNum === null) {
-                const one = words[i];
-                if (DEFAULT_NUMBERS[one] !== undefined) foundNum = DEFAULT_NUMBERS[one];
-                else if (/\d+/.test(one)) foundNum = parseInt(one, 10);
-                else if (DEFAULT_TARGETS[one] !== undefined) currentTarget = DEFAULT_TARGETS[one];
-            }
-            if (foundNum !== null) {
-                if (currentTarget === 'lana') parsedLana = foundNum; else parsedLahoma = foundNum;
-            }
-            i += skip;
-        }
-
-        const max = form.type === 'sun' ? 26 : 16;
-        if (calcMode === 'strict') {
-            if (parsedLana !== null && parsedLahoma !== null) {
-                form.pointsLana = Math.min(parsedLana, max); form.pointsLahoma = Math.min(parsedLahoma, max);
-            } else if (parsedLana !== null) {
-                form.pointsLana = Math.min(parsedLana, max); form.pointsLahoma = max - form.pointsLana;
-            } else if (parsedLahoma !== null) {
-                form.pointsLahoma = Math.min(parsedLahoma, max); form.pointsLana = max - form.pointsLahoma;
-            }
-        } else {
-            if (parsedLana !== null) form.pointsLana = parsedLana;
-            if (parsedLahoma !== null) form.pointsLahoma = parsedLahoma;
-        }
-        el('feedback').innerText = `✅ سمعت: ${transcript}`;
-        render();
-    }
-
-    function calculateProjects(team) {
-        let p = form.projects[team];
-        if (form.type === 'sun') return (p.sira*4) + (p.fifty*10) + (p.hundred*20) + (p.fourHundred*40);
-        return (p.sira*2) + (p.fifty*5) + (p.hundred*10) + (p.baloot*2);
-    }
-
-    function evalForm() {
-        let baseLana = parseInt(form.pointsLana) || 0;
-        let baseLahoma = parseInt(form.pointsLahoma) || 0;
-        let pLana = calculateProjects('lana');
-        let pLahoma = calculateProjects('lahoma');
-        
-        if (calcMode === 'free') {
-            return { totLana: baseLana + pLana, totLahoma: baseLahoma + pLahoma, ready: form.pointsLana!=='' && form.pointsLahoma!=='' };
-        }
-        
-        let maxPts = form.type === 'sun' ? 26 : 16;
-        let kabootPts = form.type === 'sun' ? 44 : 26;
-        let ready = (baseLana + baseLahoma === maxPts);
-        let totLana = 0, totLahoma = 0, msg = "";
-
-        if (ready) {
-            if (baseLana === maxPts) { totLana = kabootPts + pLana + pLahoma; msg = "كبوت لنا! 🔥"; }
-            else if (baseLahoma === maxPts) { totLahoma = kabootPts + pLana + pLahoma; msg = "كبوت لهم! 💀"; }
-            else {
-                let rLana = baseLana + pLana; let rLahoma = baseLahoma + pLahoma;
-                if (form.buyer === 'lana' && rLana <= rLahoma) { totLahoma = maxPts + pLana + pLahoma; msg = "سقطنا 💔"; }
-                else if (form.buyer === 'lahoma' && rLahoma <= rLana) { totLana = maxPts + pLana + pLahoma; msg = "طيحناهم 🏆"; }
-                else { totLana = rLana; totLahoma = rLahoma; }
-            }
-        }
-        return { totLana, totLahoma, lossMessage: msg, ready };
-    }
-
-    function submitRound() {
-        let res = evalForm();
-        if (!res.ready) return;
-        history = [{
-            id: Date.now(), lana: res.totLana, lahoma: res.totLahoma,
-            details: calcMode === 'strict' ? (form.type === 'sun'?'صن':'حكم') : 'حر',
-            snapshot: JSON.parse(JSON.stringify({ ...form, calcMode }))
-        }, ...history];
-        form = JSON.parse(JSON.stringify(blankForm));
-        el('feedback').style.display='none';
-        render();
-        announce();
-    }
-
-    function handleUndo() {
-        if(history.length === 0) return;
-        form = history[0].snapshot;
-        calcMode = form.calcMode || 'strict';
-        history = history.slice(1);
-        render();
-    }
-
-    function resetGame() {
-        history = []; form = JSON.parse(JSON.stringify(blankForm)); dismissedWin = false; render();
-    }
-
-    function announce(forced = false) {
-        if (!ttsEnabled && !forced) return;
-        window.speechSynthesis.cancel();
-        let tLana = history.reduce((a,c)=>a+c.lana, 0);
-        let tLahoma = history.reduce((a,c)=>a+c.lahoma, 0);
-        let u = new SpeechSynthesisUtterance(`لنا ${tLana}، ولهم ${tLahoma}.`);
-        u.lang = 'ar-SA'; window.speechSynthesis.speak(u);
-    }
-
-    function render() {
-        // Save
-        try {
-            localStorage.setItem('b_hist', JSON.stringify(history));
-            localStorage.setItem('b_mode', calcMode);
-            localStorage.setItem('b_tts', ttsEnabled);
-        } catch(e){}
-
-        // Totals
-        let tLana = history.reduce((a,c)=>a+c.lana, 0);
-        let tLahoma = history.reduce((a,c)=>a+c.lahoma, 0);
-        el('totLana').innerText = tLana;
-        el('totLahoma').innerText = tLahoma;
-
-        // Racing bars
-        el('barLana').style.width = `${Math.min((tLana/SakahLimit)*100, 100)}%`;
-        el('barLahoma').style.width = `${Math.min((tLahoma/SakahLimit)*100, 100)}%`;
-
-        // Toggles mapping
-        el('modeToggle').className = `btn btn-${calcMode}`;
-        el('modeTxt').innerText = calcMode === 'strict' ? 'حاسبة ذكية' : 'حاسبة حرة';
-        el('ttsToggle').className = `btn btn-circle ${ttsEnabled?'btn-active-emerald':''}`;
-        el('strictControls').style.display = calcMode === 'strict' ? 'grid' : 'none';
-
-        // Strict sub-states
-        ['typeSun','typeHokom','buyerLana','buyerLahoma'].forEach(id => el(id).className='');
-        el(form.type === 'sun'?'typeSun':'typeHokom').className = 'active-indigo';
-        el(form.buyer === 'lana'?'buyerLana':'buyerLahoma').className = form.buyer==='lana'?'active-emerald':'active-purple';
-
-        // Render chips
-        renderChips('lana'); renderChips('lahoma');
-
-        // Inputs setting
-        el('inputLana').value = form.pointsLana;
-        el('inputLahoma').value = form.pointsLahoma;
-
-        // Submit state
-        let ev = evalForm();
-        el('submitBtn').disabled = !ev.ready;
-        if(ev.ready && ev.lossMessage) el('submitBtn').innerText = `تسجيل (${ev.lossMessage})`;
-        else el('submitBtn').innerText = "اعتماد النتيجة";
-
-        // Undo setting
-        el('undoBtn').disabled = history.length === 0;
-
-        // Ledger block
-        el('ledgerBody').innerHTML = '';
-        let targetList = historyExpanded ? history : history.slice(0,3);
-        targetList.forEach(r => {
-            let row = document.createElement('div');
-            row.className = 'table-row';
-            row.innerHTML = `<div class="text-emerald-400 font-bold">${r.lana}</div><div><span class="badge-type">${r.details}</span></div><div class="diff-lbl">${Math.abs(r.lana-r.lahoma)}</div><div class="text-purple">${r.lahoma}</div>`;
-            el('ledgerBody').appendChild(row);
-        });
-
-        // Toggle History label
-        if(history.length > 3) {
-            el('ledgerBody').insertAdjacentHTML('beforeend', `<div style="text-align:center; padding: 8px;"><button class="btn" id="expandHistoryBtn">${historyExpanded?'طي السجل':'عرض كامل السجل'}</button></div>`);
-            el('expandHistoryBtn').addEventListener('click', () => { historyExpanded = !historyExpanded; render(); });
-        }
-
-        // Victory condition
-        if((tLana >= SakahLimit || tLahoma >= SakahLimit) && !dismissedWin) {
-            el('winnerModal').style.display = 'flex';
-            el('winnerName').innerText = tLana >= SakahLimit ? 'لنا (Us)' : 'لهم (Them)';
-        } else {
-            el('winnerModal').style.display = 'none';
-        }
-    }
-
-    function renderChips(team) {
-        const container = el(`${team}Chips`);
-        container.innerHTML = '';
-        PROJECT_DEF.forEach(p => {
-            let count = form.projects[team][p.key];
-            let activeClass = count > 0 ? (team === 'lana' ? 'active-emerald' : 'active-lahoma') : '';
-            let btn = document.createElement('button');
-            btn.className = `chip ${activeClass}`;
-            btn.innerText = p.label;
-            if(count > 0) btn.innerHTML += `<span class="badge">${count}</span>`;
-            btn.addEventListener('click', () => { form.projects[team][p.key]++; render(); });
-            container.appendChild(btn);
-        });
-    }
-</script>
+        // Bootstrap App
+        window.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
 </body>
 </html>

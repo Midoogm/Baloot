@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2660.png">
-    
     <title>Baloot Pro - بلوت برو</title>
+    
+    <!-- Scripts & Styles (Requires Internet Connection) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -28,7 +24,7 @@
             margin: 0;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden; /* Zero Scroll */
+            overflow: hidden; 
         }
         .btn-press { transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.2s ease; }
         .btn-press:active { transform: scale(0.96); }
@@ -38,22 +34,23 @@
         
         .chip { transition: all 0.2s ease; position: relative; }
         .chip.active {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
+            background-color: #3b82f6; color: white; border-color: #3b82f6;
             box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
         }
         .badge {
             position: absolute; top: -5px; right: -5px;
-            background: #e11d48; color: white;
-            border-radius: 50%; width: 16px; height: 16px;
-            font-size: 9px; font-weight: 900;
-            display: flex; align-items: center; justify-content: center;
+            background: #e11d48; color: white; border-radius: 50%; width: 16px; height: 16px;
+            font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center;
             border: 2px solid #0f172a;
         }
         
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .huge-input {
+            font-size: 2.5rem !important;
+            height: 4.5rem !important;
+        }
     </style>
 </head>
 <body>
@@ -85,9 +82,9 @@
 
         const App = () => {
             const [history, setHistory] = useState([]);
+            const [historyExpanded, setHistoryExpanded] = useState(false);
             const [calcMode, setCalcMode] = useState('strict'); // 'strict' | 'free'
             const [ttsEnabled, setTtsEnabled] = useState(false);
-            const [editingId, setEditingId] = useState(null);
             const [isDictModalOpen, setIsDictModalOpen] = useState(false);
             
             const blankForm = {
@@ -96,23 +93,19 @@
                 pointsLana: '', pointsLahoma: ''
             };
             const [form, setForm] = useState(blankForm);
-
             const [customDict, setCustomDict] = useState({ numbers: {}, targets: {} });
-            const [newWord, setNewWord] = useState('');
-            const [newMeaningType, setNewMeaningType] = useState('number');
-            const [newMeaningVal, setNewMeaningVal] = useState('');
-
+            
             const [isListening, setIsListening] = useState(false);
             const [transcriptLog, setTranscriptLog] = useState("");
             const [voiceFeedback, setVoiceFeedback] = useState("");
             
             const recognitionRef = useRef(null);
 
-            // Persistence
+            // Load Data
             useEffect(() => {
-                const saved = localStorage.getItem('balootProHistoryV9');
-                if (saved) try { setHistory(JSON.parse(saved)); } catch (e) {}
-                const savedDict = localStorage.getItem('balootProDictV3');
+                const savedHistory = localStorage.getItem('balootProHistoryV10');
+                if (savedHistory) try { setHistory(JSON.parse(savedHistory)); } catch (e) {}
+                const savedDict = localStorage.getItem('balootProDictV4');
                 if (savedDict) try { setCustomDict(JSON.parse(savedDict)); } catch (e) {}
                 const savedMode = localStorage.getItem('balootProMode');
                 if (savedMode) setCalcMode(savedMode);
@@ -120,22 +113,22 @@
                 if (savedTTS) setTtsEnabled(savedTTS === 'true');
             }, []);
 
-            useEffect(() => { localStorage.setItem('balootProHistoryV9', JSON.stringify(history)); }, [history]);
-            useEffect(() => { localStorage.setItem('balootProDictV3', JSON.stringify(customDict)); }, [customDict]);
+            // Save Data
+            useEffect(() => { localStorage.setItem('balootProHistoryV10', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('balootProDictV4', JSON.stringify(customDict)); }, [customDict]);
             useEffect(() => { localStorage.setItem('balootProMode', calcMode); }, [calcMode]);
             useEffect(() => { localStorage.setItem('balootProTTS', ttsEnabled.toString()); }, [ttsEnabled]);
 
-            // TTS Announcer
-            const announceScore = (lana, lahoma, customMsg = null) => {
+            // Shortened TTS Announcer
+            const announceScore = (lana, lahoma) => {
                 if (!ttsEnabled) return;
                 window.speechSynthesis.cancel();
-                let text = customMsg ? customMsg : `النتيجة الآن، لنا ${lana}، ولهم ${lahoma}.`;
-                let u = new SpeechSynthesisUtterance(text);
+                let u = new SpeechSynthesisUtterance(`لنا ${lana}، ولهم ${lahoma}.`);
                 u.lang = 'ar-SA'; u.rate = 1.05;
                 window.speechSynthesis.speak(u);
             };
 
-            // Voice Recognition Setup
+            // Setup Voice Recognition
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
@@ -144,7 +137,7 @@
                     
                     recognition.onstart = () => {
                         setIsListening(true);
-                        setVoiceFeedback("أستمع... (مثال: 'معنا 15')");
+                        setVoiceFeedback("أستمع... (مثال: 'لنا 5 ولهم 20')");
                     };
                     
                     recognition.onresult = (event) => {
@@ -159,45 +152,84 @@
                 }
             }, [form, customDict, calcMode]);
 
+            // Advanced Dual-Parsing Voice Engine
             const processPointsTranscript = (transcript) => {
                 let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
+                text = text.replace(/(\d+)/g, ' $1 '); // Pad digits with spaces for cleaner splitting
+
                 const mergedNums = { ...DEFAULT_NUMBERS, ...customDict.numbers };
                 const mergedTargets = { ...DEFAULT_TARGETS, ...customDict.targets };
 
-                let foundNum = null; let foundTarget = null;
-                const digitMatch = text.match(/\d+/);
-                if (digitMatch) foundNum = parseInt(digitMatch[0], 10);
+                let parsedLana = null;
+                let parsedLahoma = null;
+                let currentTarget = form.buyer; // Default target
 
-                if (foundNum === null) {
-                    const sortedWords = Object.keys(mergedNums).sort((a, b) => b.length - a.length);
-                    for (const word of sortedWords) { if (text.includes(word)) { foundNum = mergedNums[word]; break; } }
-                }
+                const words = text.split(/\s+/).filter(w => w);
                 
-                const sortedTargets = Object.keys(mergedTargets).sort((a, b) => b.length - a.length);
-                for (const word of sortedTargets) { if (text.includes(word)) { foundTarget = mergedTargets[word]; break; } }
+                let i = 0;
+                while (i < words.length) {
+                    let foundNum = null;
+                    let skip = 1;
 
-                if (foundNum !== null) {
-                    const max = form.type === 'sun' ? 26 : 16;
-                    if (calcMode === 'strict' && foundNum > max) {
-                        setVoiceFeedback(`❌ الرقم ${foundNum} يتجاوز الحد (${max})`);
-                        return;
+                    // Try parsing 2-word numbers first (e.g., "واحد وعشرين")
+                    if (i < words.length - 1) {
+                        const twoWords = words[i] + " " + words[i+1];
+                        if (mergedNums[twoWords] !== undefined) {
+                            foundNum = mergedNums[twoWords];
+                            skip = 2;
+                        }
+                    }
+                    
+                    // Try parsing 1-word
+                    if (foundNum === null) {
+                        const oneWord = words[i];
+                        if (mergedNums[oneWord] !== undefined) {
+                            foundNum = mergedNums[oneWord];
+                        } else if (/\d+/.test(oneWord)) {
+                            foundNum = parseInt(oneWord, 10);
+                        } else if (mergedTargets[oneWord] !== undefined) {
+                            currentTarget = mergedTargets[oneWord];
+                        }
                     }
 
-                    const targetTeam = foundTarget || form.buyer; 
-                    setForm(prev => {
-                        let updates = { ...prev };
-                        if (targetTeam === 'lana') {
-                            updates.pointsLana = foundNum;
-                            if(calcMode === 'strict') updates.pointsLahoma = max - foundNum;
-                        } else {
-                            updates.pointsLahoma = foundNum;
-                            if(calcMode === 'strict') updates.pointsLana = max - foundNum;
-                        }
-                        return updates;
-                    });
-                    setVoiceFeedback(`✅ تم تسجيل ${foundNum} لـ ${targetTeam === 'lana' ? 'لنا' : 'لهم'}`);
+                    // Assign parsed number to current target context
+                    if (foundNum !== null) {
+                        if (currentTarget === 'lana') parsedLana = foundNum;
+                        else parsedLahoma = foundNum;
+                    }
+                    i += skip;
+                }
+
+                // Apply constraints and auto-calc logic
+                const max = form.type === 'sun' ? 26 : 16;
+                let updateLana = parsedLana !== null ? parsedLana : form.pointsLana;
+                let updateLahoma = parsedLahoma !== null ? parsedLahoma : form.pointsLahoma;
+
+                if (calcMode === 'strict') {
+                    if (parsedLana !== null && parsedLahoma !== null) {
+                        if (parsedLana > max) parsedLana = max;
+                        if (parsedLahoma > max) parsedLahoma = max;
+                        updateLana = parsedLana; updateLahoma = parsedLahoma;
+                    } else if (parsedLana !== null) {
+                        if (parsedLana > max) parsedLana = max;
+                        updateLana = parsedLana; updateLahoma = max - parsedLana;
+                    } else if (parsedLahoma !== null) {
+                        if (parsedLahoma > max) parsedLahoma = max;
+                        updateLahoma = parsedLahoma; updateLana = max - parsedLahoma;
+                    }
                 } else {
-                    setVoiceFeedback("❌ لم التقط الأبناط.");
+                    if (parsedLana !== null) updateLana = parsedLana;
+                    if (parsedLahoma !== null) updateLahoma = parsedLahoma;
+                }
+
+                if (parsedLana !== null || parsedLahoma !== null) {
+                    setForm(prev => ({ ...prev, pointsLana: updateLana, pointsLahoma: updateLahoma }));
+                    let fb = "✅ سجلت:";
+                    if (parsedLana !== null) fb += ` لنا ${updateLana}`;
+                    if (parsedLahoma !== null) fb += (parsedLana !== null ? " و" : "") + ` لهم ${updateLahoma}`;
+                    setVoiceFeedback(fb);
+                } else {
+                    setVoiceFeedback("❌ لم التقط أي أرقام.");
                 }
             };
 
@@ -207,7 +239,7 @@
                 else { setTranscriptLog(""); recognitionRef.current.start(); }
             };
 
-            // Smart Calculator Input Logic
+            // Calculator Style Input Overwrite
             const handlePointsChange = (team, value) => {
                 let valStr = value.replace(/^0+/, ''); 
                 if (valStr === '') { setForm(prev => ({ ...prev, [team === 'lana' ? 'pointsLana' : 'pointsLahoma']: '' })); return; }
@@ -217,12 +249,15 @@
 
                 if (calcMode === 'strict') {
                     const max = form.type === 'sun' ? 26 : 16;
-                    if (val > max) val = parseInt(valStr.slice(-1), 10); // Assume they typed a new digit
-                    
+                    // If typing exceeds max, assume they are starting a new number
+                    if (val > max) {
+                        valStr = valStr.slice(-1);
+                        val = parseInt(valStr, 10);
+                    }
                     if (team === 'lana') setForm(prev => ({ ...prev, pointsLana: val, pointsLahoma: max - val }));
                     else setForm(prev => ({ ...prev, pointsLahoma: val, pointsLana: max - val }));
                 } else {
-                    // Free Mode: No rules
+                    // Free Mode
                     if (team === 'lana') setForm(prev => ({ ...prev, pointsLana: val }));
                     else setForm(prev => ({ ...prev, pointsLahoma: val }));
                 }
@@ -269,7 +304,6 @@
                     totLahoma = baseLahoma + pLahoma;
                     ready = form.pointsLana !== '' && form.pointsLahoma !== '';
                 } else {
-                    // Strict Mode with official rules
                     let maxPts = form.type === 'sun' ? 26 : 16;
                     let kabootPts = form.type === 'sun' ? 44 : 26;
                     ready = (baseLana + baseLahoma === maxPts);
@@ -281,11 +315,10 @@
                             totLahoma = kabootPts + pLana + pLahoma; totLana = 0; lossMessage = "كبوت لهم! 💀";
                         } else {
                             let rawLana = baseLana + pLana; let rawLahoma = baseLahoma + pLahoma;
-                            // Check loss (If buyer ties or scores less, defender takes ALL points + ALL projects)
                             if (form.buyer === 'lana' && rawLana <= rawLahoma) {
-                                isLoss = true; totLahoma = maxPts + pLana + pLahoma; totLana = 0; lossMessage = "خسارة علينا! 💔";
+                                isLoss = true; totLahoma = maxPts + pLana + pLahoma; totLana = 0; lossMessage = "سقطنا 💔";
                             } else if (form.buyer === 'lahoma' && rawLahoma <= rawLana) {
-                                isLoss = true; totLana = maxPts + pLana + pLahoma; totLahoma = 0; lossMessage = "خسارة عليهم! 🏆";
+                                isLoss = true; totLana = maxPts + pLana + pLahoma; totLahoma = 0; lossMessage = "طيحناهم 🏆";
                             } else {
                                 totLana = rawLana; totLahoma = rawLahoma;
                             }
@@ -300,248 +333,227 @@
                 if (!results.ready) return;
                 
                 const newRound = {
-                    id: editingId || Date.now(),
+                    id: Date.now(),
                     lana: results.totLana,
                     lahoma: results.totLahoma,
                     details: calcMode === 'strict' ? (form.type === 'sun' ? 'صن' : 'حكم') : 'حر',
-                    snapshot: JSON.parse(JSON.stringify({ ...form, calcMode })) // Save raw state for editing
+                    snapshot: JSON.parse(JSON.stringify({ ...form, calcMode })) 
                 };
 
-                let updatedHistory;
-                if (editingId) {
-                    updatedHistory = history.map(r => r.id === editingId ? newRound : r);
-                    setEditingId(null);
-                } else {
-                    updatedHistory = [newRound, ...history];
-                }
-                
+                const updatedHistory = [newRound, ...history];
                 setHistory(updatedHistory);
                 setForm(blankForm);
                 setTranscriptLog(""); setVoiceFeedback("");
 
-                // Speak after round
                 const finalLana = updatedHistory.reduce((acc, curr) => acc + curr.lana, 0);
                 const finalLahoma = updatedHistory.reduce((acc, curr) => acc + curr.lahoma, 0);
-                announceScore(finalLana, finalLahoma, results.lossMessage ? `${results.lossMessage}. النتيجة الآن، لنا ${finalLana}، ولهم ${finalLahoma}.` : null);
+                announceScore(finalLana, finalLahoma);
             };
 
-            const editRound = (round) => {
-                setEditingId(round.id);
-                setCalcMode(round.snapshot.calcMode || 'strict');
-                setForm(round.snapshot);
+            const handleUndo = () => {
+                if (history.length === 0) return;
+                const lastRound = history[0];
+                setForm(lastRound.snapshot);
+                setCalcMode(lastRound.snapshot.calcMode || 'strict');
+                setHistory(history.slice(1));
             };
 
-            const cancelEdit = () => { setEditingId(null); setForm(blankForm); };
-            const resetGame = () => { if (window.confirm("تصفير النتيجة؟")) { setHistory([]); setEditingId(null); setForm(blankForm); } };
-
-            // Dict Handlers
-            const handleAddWord = () => {
-                if (!newWord.trim() || newMeaningVal === '') return;
-                setCustomDict(prev => {
-                    const d = { ...prev };
-                    if (newMeaningType === 'number') d.numbers = { ...d.numbers, [newWord.toLowerCase()]: parseInt(newMeaningVal, 10) };
-                    else d.targets = { ...d.targets, [newWord.toLowerCase()]: newMeaningVal };
-                    return d;
-                });
-                setNewWord(''); setNewMeaningVal('');
-            };
-            const handleRemoveWord = (type, word) => {
-                setCustomDict(prev => { const d = { ...prev }; delete d[type][word]; return d; });
-            };
+            const resetGame = () => { if (window.confirm("تصفير النتيجة والبدء من جديد؟")) { setHistory([]); setForm(blankForm); } };
 
             const totalLana = history.reduce((acc, curr) => acc + curr.lana, 0);
             const totalLahoma = history.reduce((acc, curr) => acc + curr.lahoma, 0);
             const preview = calculateResults();
+            const displayedHistory = historyExpanded ? history : history.slice(0, 3);
 
             return (
-                <div className="w-full max-w-md mx-auto h-[100dvh] flex flex-col overflow-hidden bg-[#0f172a]">
+                <div className="w-full max-w-md mx-auto h-[100dvh] flex flex-col bg-[#0f172a]">
                     
-                    {/* Compact Header & Toggles */}
-                    <div className="px-3 pt-4 pb-2 shrink-0 flex flex-col z-10 gap-2 border-b border-slate-800">
-                        <div className="flex justify-between items-center">
+                    {/* Header & Scoreboard */}
+                    <div className="shrink-0 flex flex-col z-10 border-b border-slate-800 shadow-md bg-slate-900/50">
+                        <div className="px-4 pt-4 pb-3 flex justify-between items-center">
                             <div className="flex gap-2">
                                 <button onClick={() => setCalcMode(prev => prev === 'strict' ? 'free' : 'strict')} 
-                                    className={`px-2 py-1 rounded text-xs font-bold transition btn-press border ${calcMode === 'strict' ? 'bg-indigo-900/50 text-indigo-300 border-indigo-700/50' : 'bg-amber-900/50 text-amber-300 border-amber-700/50'}`}>
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition btn-press border ${calcMode === 'strict' ? 'bg-indigo-900/50 text-indigo-300 border-indigo-700/50' : 'bg-amber-900/50 text-amber-300 border-amber-700/50'}`}>
                                     <i className={`fa-solid ${calcMode === 'strict' ? 'fa-brain' : 'fa-unlock'} mr-1`}></i>
                                     {calcMode === 'strict' ? 'حاسبة ذكية' : 'حاسبة حرة'}
                                 </button>
                                 <button onClick={() => setTtsEnabled(!ttsEnabled)} 
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition btn-press border ${ttsEnabled ? 'bg-emerald-900/50 text-emerald-400 border-emerald-700/50' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                                    className={`w-9 h-9 rounded-full flex items-center justify-center transition btn-press border ${ttsEnabled ? 'bg-emerald-900/50 text-emerald-400 border-emerald-700/50' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
                                     <i className={`fa-solid ${ttsEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}`}></i>
                                 </button>
                             </div>
                             
-                            <h1 className="text-xl font-black tracking-wider gold-text m-0">بلوت برو</h1>
+                            <h1 className="text-2xl font-black tracking-wider gold-text m-0">بلوت برو</h1>
                             
                             <div className="flex gap-2">
-                                <button onClick={() => setIsDictModalOpen(true)} className="w-8 h-8 text-blue-400 bg-blue-900/30 rounded-full flex items-center justify-center transition btn-press">
+                                <button onClick={() => setIsDictModalOpen(true)} className="w-9 h-9 text-blue-400 bg-blue-900/30 rounded-full flex items-center justify-center transition btn-press border border-blue-900/50">
                                     <i className="fa-solid fa-book"></i>
                                 </button>
-                                <button onClick={resetGame} className="w-8 h-8 text-rose-400 bg-rose-900/30 rounded-full flex items-center justify-center transition btn-press">
+                                <button onClick={resetGame} className="w-9 h-9 text-rose-400 bg-rose-900/30 rounded-full flex items-center justify-center transition btn-press border border-rose-900/50">
                                     <i className="fa-solid fa-rotate-right"></i>
                                 </button>
                             </div>
                         </div>
-                        
-                        {/* Progress */}
-                        <div className="w-full bg-slate-800/80 rounded-full h-1 flex overflow-hidden">
-                            <div className="bg-emerald-500 h-full progress-bar" style={{width: `${Math.min((totalLana/SakahLimit)*100, 100)}%`}}></div>
-                            <div className="flex-1"></div>
-                            <div className="bg-rose-500 h-full progress-bar" style={{width: `${Math.min((totalLahoma/SakahLimit)*100, 100)}%`}}></div>
+
+                        {/* Totals */}
+                        <div className="px-6 py-4 flex justify-between items-center relative">
+                            <div className="w-full absolute bottom-0 left-0 bg-slate-800/80 h-1">
+                                <div className="bg-emerald-500 h-full absolute left-0" style={{width: `${Math.min((totalLana/SakahLimit)*100, 100)}%`}}></div>
+                                <div className="bg-rose-500 h-full absolute right-0" style={{width: `${Math.min((totalLahoma/SakahLimit)*100, 100)}%`}}></div>
+                            </div>
+
+                            <div className="flex flex-col items-center flex-1">
+                                <span className="text-xs font-bold text-slate-500 mb-1">لنا (Us)</span>
+                                <span className="text-5xl font-black text-emerald-400 tracking-tighter">{totalLana}</span>
+                            </div>
+                            
+                            <button onClick={() => announceScore(totalLana, totalLahoma)} className="w-12 h-12 bg-slate-800 text-slate-400 border border-slate-700 rounded-full flex flex-col items-center justify-center shadow-lg btn-press hover:text-white z-10">
+                                <i className="fa-solid fa-bullhorn text-lg"></i>
+                            </button>
+                            
+                            <div className="flex flex-col items-center flex-1">
+                                <span className="text-xs font-bold text-slate-500 mb-1">لهم (Them)</span>
+                                <span className="text-5xl font-black text-rose-400 tracking-tighter">{totalLahoma}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Compact Scoreboard */}
-                    <div className="px-3 py-2 shrink-0 z-10 flex justify-between items-center bg-slate-900/50 border-b border-slate-800/80 shadow-sm">
-                        <div className="flex flex-col items-center flex-1">
-                            <span className="text-[10px] font-bold text-slate-500">لنا (Us)</span>
-                            <span className="text-3xl font-black text-emerald-400">{totalLana}</span>
-                        </div>
+                    {/* MASSIVE ENTRY FORM */}
+                    <div className="shrink-0 p-4 bg-slate-950 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-20 flex flex-col gap-5 border-b border-slate-800 relative">
                         
-                        <button onClick={() => announceScore(totalLana, totalLahoma)} className="w-10 h-10 bg-slate-800 text-slate-400 rounded-full flex flex-col items-center justify-center shadow-inner btn-press hover:text-white">
-                            <i className="fa-solid fa-bullhorn text-sm"></i>
-                        </button>
-                        
-                        <div className="flex flex-col items-center flex-1">
-                            <span className="text-[10px] font-bold text-slate-500">لهم (Them)</span>
-                            <span className="text-3xl font-black text-rose-400">{totalLahoma}</span>
-                        </div>
-                    </div>
-
-                    {/* MAIN IN-PLACE ENTRY FORM (Always Visible) */}
-                    <div className="shrink-0 p-3 bg-slate-950/80 border-b border-slate-800 flex flex-col gap-3 relative shadow-[0_5px_15px_rgba(0,0,0,0.5)] z-20">
-                        {editingId && (
-                            <div className="absolute top-0 left-0 w-full h-1 bg-yellow-500 animate-pulse"></div>
-                        )}
-                        
-                        {/* Projects Compact Row */}
-                        <div className="flex flex-col gap-1.5">
+                        {/* 1. Projects Row */}
+                        <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">لنا:</span>
-                                <div className="flex flex-wrap gap-1 flex-1 justify-end">
+                                <span className="text-[11px] font-bold text-slate-400">مشاريعنا:</span>
+                                <div className="flex flex-wrap gap-1.5 flex-1 justify-end">
                                     {PROJECT_DEF.map(p => (
                                         <button key={'lana'+p.key} onClick={() => handleProjectClick('lana', p.key)} 
-                                            className={`chip px-2 py-1 rounded text-[10px] font-bold border border-slate-700 ${form.projects.lana[p.key] > 0 ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                            className={`chip px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 transition-colors ${form.projects.lana[p.key] > 0 ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                             {p.label} {form.projects.lana[p.key] > 0 && <span className="badge">{form.projects.lana[p.key]}</span>}
                                         </button>
                                     ))}
-                                    {Object.values(form.projects.lana).some(v=>v>0) && <button onClick={()=>clearProjects('lana')} className="px-2 py-1 rounded text-[10px] bg-rose-900/50 text-rose-400"><i className="fa-solid fa-xmark"></i></button>}
+                                    {Object.values(form.projects.lana).some(v=>v>0) && <button onClick={()=>clearProjects('lana')} className="px-2.5 py-1.5 rounded-lg text-xs bg-rose-900/50 text-rose-400"><i className="fa-solid fa-xmark"></i></button>}
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">لهم:</span>
-                                <div className="flex flex-wrap gap-1 flex-1 justify-end">
+                                <span className="text-[11px] font-bold text-slate-400">مشاريعهم:</span>
+                                <div className="flex flex-wrap gap-1.5 flex-1 justify-end">
                                     {PROJECT_DEF.map(p => (
                                         <button key={'lahoma'+p.key} onClick={() => handleProjectClick('lahoma', p.key)} 
-                                            className={`chip px-2 py-1 rounded text-[10px] font-bold border border-slate-700 ${form.projects.lahoma[p.key] > 0 ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                            className={`chip px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 transition-colors ${form.projects.lahoma[p.key] > 0 ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                             {p.label} {form.projects.lahoma[p.key] > 0 && <span className="badge">{form.projects.lahoma[p.key]}</span>}
                                         </button>
                                     ))}
-                                    {Object.values(form.projects.lahoma).some(v=>v>0) && <button onClick={()=>clearProjects('lahoma')} className="px-2 py-1 rounded text-[10px] bg-rose-900/50 text-rose-400"><i className="fa-solid fa-xmark"></i></button>}
+                                    {Object.values(form.projects.lahoma).some(v=>v>0) && <button onClick={()=>clearProjects('lahoma')} className="px-2.5 py-1.5 rounded-lg text-xs bg-rose-900/50 text-rose-400"><i className="fa-solid fa-xmark"></i></button>}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Type & Buyer (Only highly relevant if strict, but kept for logic) */}
+                        {/* 2. Type/Buyer (Hidden in Free mode) */}
                         {calcMode === 'strict' && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex bg-slate-900 rounded p-1 border border-slate-800">
-                                    <button onClick={() => handleTypeChange('sun')} className={`flex-1 py-1 rounded font-bold text-xs transition ${form.type === 'sun' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>صن</button>
-                                    <button onClick={() => handleTypeChange('hokom')} className={`flex-1 py-1 rounded font-bold text-xs transition ${form.type === 'hokom' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>حكم</button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800">
+                                    <button onClick={() => handleTypeChange('sun')} className={`flex-1 py-1.5 rounded-lg font-bold text-sm transition ${form.type === 'sun' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>صن</button>
+                                    <button onClick={() => handleTypeChange('hokom')} className={`flex-1 py-1.5 rounded-lg font-bold text-sm transition ${form.type === 'hokom' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>حكم</button>
                                 </div>
-                                <div className="flex bg-slate-900 rounded p-1 border border-slate-800">
-                                    <button onClick={() => setForm({...form, buyer: 'lana'})} className={`flex-1 py-1 rounded font-bold text-xs transition ${form.buyer === 'lana' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>المشتري لنا</button>
-                                    <button onClick={() => setForm({...form, buyer: 'lahoma'})} className={`flex-1 py-1 rounded font-bold text-xs transition ${form.buyer === 'lahoma' ? 'bg-rose-600 text-white' : 'text-slate-500'}`}>المشتري لهم</button>
+                                <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800">
+                                    <button onClick={() => setForm({...form, buyer: 'lana'})} className={`flex-1 py-1.5 rounded-lg font-bold text-sm transition ${form.buyer === 'lana' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500'}`}>لنا</button>
+                                    <button onClick={() => setForm({...form, buyer: 'lahoma'})} className={`flex-1 py-1.5 rounded-lg font-bold text-sm transition ${form.buyer === 'lahoma' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-500'}`}>لهم</button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Points & Submit Row */}
-                        <div className="flex gap-2 items-stretch h-14">
-                            <input type="number" value={form.pointsLana} onChange={(e) => handlePointsChange('lana', e.target.value)} onFocus={(e) => e.target.select()}
-                                className="w-16 bg-slate-900 border border-emerald-900/50 rounded-lg text-center text-xl font-black text-white focus:outline-none focus:border-emerald-500 focus:bg-slate-800 transition" placeholder="لنا" />
-                            
-                            <button onClick={toggleListening} className={`w-14 rounded-lg flex items-center justify-center text-lg transition-all btn-press border border-slate-700 shrink-0
-                                ${isListening ? 'bg-rose-600 text-white shadow-[0_0_15px_#e11d48] border-rose-400 animate-pulse' : 'bg-slate-800 text-blue-400 hover:bg-blue-600 hover:text-white'}`}>
-                                <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
-                            </button>
-
-                            <input type="number" value={form.pointsLahoma} onChange={(e) => handlePointsChange('lahoma', e.target.value)} onFocus={(e) => e.target.select()}
-                                className="w-16 bg-slate-900 border border-rose-900/50 rounded-lg text-center text-xl font-black text-white focus:outline-none focus:border-rose-500 focus:bg-slate-800 transition" placeholder="لهم" />
-                            
-                            <button onClick={submitRound} disabled={!preview.ready} 
-                                className={`flex-1 rounded-lg font-bold text-sm transition-all btn-press flex flex-col items-center justify-center leading-tight
-                                ${preview.ready ? (editingId ? 'bg-yellow-600 text-white' : 'bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]') : 'bg-slate-800 text-slate-600'}`}>
-                                {editingId ? <span>تحديث<br/>الجولة</span> : <span>تسجيل<br/>النتيجة</span>}
-                            </button>
-                            
-                            {editingId && (
-                                <button onClick={cancelEdit} className="w-10 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition btn-press flex items-center justify-center">
-                                    <i className="fa-solid fa-xmark"></i>
+                        {/* 3. Huge Points Inputs & Voice */}
+                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-inner relative">
+                            <div className="flex justify-between items-center gap-4">
+                                <div className="relative flex-1">
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-emerald-600/50 font-black pointer-events-none">لنا</span>
+                                    <input type="number" value={form.pointsLana} onChange={(e) => handlePointsChange('lana', e.target.value)} onFocus={(e) => e.target.select()}
+                                        className="w-full bg-slate-900 border border-emerald-900/50 rounded-xl huge-input text-center font-black text-emerald-400 focus:outline-none focus:border-emerald-500 focus:bg-slate-800 transition shadow-lg" placeholder="-" />
+                                </div>
+                                
+                                <button onClick={toggleListening} className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all btn-press border shrink-0 z-10
+                                    ${isListening ? 'bg-rose-600 text-white border-rose-400 shadow-[0_0_25px_#e11d48] animate-pulse' : 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:scale-105'}`}>
+                                    <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
                                 </button>
+
+                                <div className="relative flex-1">
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-rose-600/50 font-black pointer-events-none">لهم</span>
+                                    <input type="number" value={form.pointsLahoma} onChange={(e) => handlePointsChange('lahoma', e.target.value)} onFocus={(e) => e.target.select()}
+                                        className="w-full bg-slate-900 border border-rose-900/50 rounded-xl huge-input text-center font-black text-rose-400 focus:outline-none focus:border-rose-500 focus:bg-slate-800 transition shadow-lg" placeholder="-" />
+                                </div>
+                            </div>
+                            
+                            {(transcriptLog || voiceFeedback) && (
+                                <div className="mt-3 text-center text-xs font-bold bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                    {transcriptLog && <p className="text-slate-400 mb-1">سمعت: <span className="text-white">"{transcriptLog}"</span></p>}
+                                    {voiceFeedback && <p className={voiceFeedback.includes('✅') ? 'text-emerald-400' : 'text-rose-400'}>{voiceFeedback}</p>}
+                                </div>
                             )}
                         </div>
 
-                        {/* Live Preview / Status */}
-                        {(preview.ready || transcriptLog || voiceFeedback) && (
-                            <div className="flex justify-between items-center text-[10px] font-bold px-1">
-                                <div className="text-slate-400">
-                                    {transcriptLog && <span>سمعت: <span className="text-emerald-400">"{transcriptLog}"</span> </span>}
-                                    {voiceFeedback && <span className={voiceFeedback.includes('✅') ? 'text-blue-400' : 'text-rose-400'}>{voiceFeedback}</span>}
-                                </div>
-                                {preview.ready && (
-                                    <div className="flex gap-2 items-center">
-                                        {preview.lossMessage && <span className="text-rose-400 animate-pulse">{preview.lossMessage}</span>}
-                                        <span className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-300">
-                                            المجموع: <span className="text-emerald-400">{preview.totLana}</span> - <span className="text-rose-400">{preview.totLahoma}</span>
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Scrollable Ledger */}
-                    <div className="flex-1 overflow-y-auto bg-slate-900/50">
-                        <div className="grid grid-cols-4 text-center bg-slate-950 p-2 font-bold text-slate-500 text-[10px] border-b border-slate-800 sticky top-0 z-10">
-                            <div>لنا</div><div>النوع</div><div>الفرق</div><div>لهم</div>
+                        {/* Submit Row */}
+                        <div className="flex gap-3 h-14">
+                            <button onClick={submitRound} disabled={!preview.ready} 
+                                className={`flex-1 rounded-xl font-black text-xl transition-all btn-press flex items-center justify-center
+                                ${preview.ready ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-[0_5px_20px_rgba(16,185,129,0.4)]' : 'bg-slate-800 text-slate-600 border border-slate-700'}`}>
+                                {preview.ready && preview.lossMessage ? <span>تسجيل ({preview.lossMessage})</span> : 'اعتماد النتيجة'}
+                            </button>
                         </div>
-                        {history.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-2 opacity-50 pb-10">
-                                <i className="fa-solid fa-spade text-3xl"></i>
-                                <span className="text-xs">السجل فارغ</span>
-                            </div>
-                        ) : (
-                            history.map((round) => (
-                                <div key={round.id} onClick={() => editRound(round)} 
-                                    className={`grid grid-cols-4 text-center p-2.5 border-b border-slate-800/50 cursor-pointer transition items-center
-                                    ${editingId === round.id ? 'bg-yellow-900/20 border-yellow-700/50' : 'hover:bg-slate-800/50'}`}>
-                                    <div className="text-emerald-400 font-bold text-sm">{round.lana}</div>
-                                    <div className="text-slate-400 text-[9px] font-bold bg-slate-800 px-1.5 py-0.5 rounded w-max mx-auto">{round.details}</div>
-                                    <div className="text-slate-500 text-[10px]">{Math.abs(round.lana - round.lahoma)}</div>
-                                    <div className="text-rose-400 font-bold text-sm">{round.lahoma}</div>
-                                </div>
-                            ))
-                        )}
                     </div>
 
-                    {/* Fullscreen Dictionary Modal */}
+                    {/* Collapsible Ledger */}
+                    <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col">
+                        <div className="flex justify-between items-center p-3 bg-slate-950 border-b border-slate-800 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-400"><i className="fa-solid fa-list-ul mr-1"></i> السجل</h3>
+                                <button onClick={handleUndo} disabled={history.length === 0} className={`px-3 py-1 rounded-lg text-xs font-bold transition btn-press border ${history.length > 0 ? 'bg-yellow-900/40 text-yellow-500 border-yellow-700/50 hover:bg-yellow-800/60' : 'bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed'}`}>
+                                    <i className="fa-solid fa-rotate-left mr-1"></i> تراجع والتعديل
+                                </button>
+                            </div>
+                            {history.length > 3 && (
+                                <button onClick={() => setHistoryExpanded(!historyExpanded)} className="text-xs font-bold text-blue-400 hover:text-white transition">
+                                    {historyExpanded ? 'طي السجل' : 'عرض السجل كامل'} <i className={`fa-solid fa-chevron-${historyExpanded ? 'up' : 'down'}`}></i>
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto">
+                            {history.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50 pb-8">
+                                    <i className="fa-solid fa-spade text-4xl mb-2"></i>
+                                    <span className="text-sm">لا توجد جولات مسجلة</span>
+                                </div>
+                            ) : (
+                                displayedHistory.map((round) => (
+                                    <div key={round.id} className="grid grid-cols-4 text-center p-3 border-b border-slate-800/50 items-center">
+                                        <div className="text-emerald-400 font-bold text-lg">{round.lana}</div>
+                                        <div className="text-slate-400 text-[10px] font-bold bg-slate-800 px-2 py-1 rounded w-max mx-auto border border-slate-700">{round.details}</div>
+                                        <div className="text-slate-500 text-xs font-mono bg-slate-900 rounded p-1 border border-slate-800">{Math.abs(round.lana - round.lahoma)}</div>
+                                        <div className="text-rose-400 font-bold text-lg">{round.lahoma}</div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Dictionary Modal */}
                     {isDictModalOpen && (
                         <div className="fixed inset-0 z-50 flex flex-col bg-[#0f172a] animate-slide-up">
                             <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900 shrink-0">
-                                <h3 className="text-lg font-bold text-white"><i className="fa-solid fa-book-open text-blue-500 mr-2"></i> القاموس</h3>
+                                <h3 className="text-lg font-bold text-white"><i className="fa-solid fa-book-open text-blue-500 mr-2"></i> قاموس الصوت</h3>
                                 <button onClick={() => setIsDictModalOpen(false)} className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                 <details className="bg-slate-900 rounded-xl border border-slate-800 p-3 group">
                                     <summary className="text-xs font-bold text-slate-300 cursor-pointer outline-none flex justify-between items-center">
-                                        عرض الكلمات الافتراضية للذكاء الاصطناعي
+                                        عرض الكلمات الافتراضية
                                         <i className="fa-solid fa-chevron-down transition-transform group-open:rotate-180"></i>
                                     </summary>
                                     <div className="mt-3 space-y-3">
                                         <div>
-                                            <h5 className="text-[10px] font-bold text-blue-400 mb-1 border-b border-slate-700 pb-1">الفريق:</h5>
+                                            <h5 className="text-[10px] font-bold text-blue-400 mb-1 border-b border-slate-700 pb-1">الفرق:</h5>
                                             <div className="flex flex-wrap gap-1">
                                                 {Object.keys(DEFAULT_TARGETS).map(w => <span key={w} className="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">{w}</span>)}
                                             </div>
@@ -549,45 +561,11 @@
                                         <div>
                                             <h5 className="text-[10px] font-bold text-emerald-400 mb-1 border-b border-slate-700 pb-1">الأرقام:</h5>
                                             <div className="flex flex-wrap gap-1">
-                                                {Object.keys(DEFAULT_NUMBERS).map(w => <span key={w} className="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">{w}</span>)}
+                                                {Object.keys(DEFAULT_NUMBERS).map(w => <span key={w} className="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">{w} ({DEFAULT_NUMBERS[w]})</span>)}
                                             </div>
                                         </div>
                                     </div>
                                 </details>
-
-                                <div className="space-y-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                    <h4 className="text-xs font-bold text-blue-400">إضافة لهجة/كلمة جديدة:</h4>
-                                    <input type="text" placeholder="الكلمة" value={newWord} onChange={e => setNewWord(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none" />
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <select value={newMeaningType} onChange={e => {setNewMeaningType(e.target.value); setNewMeaningVal('');}} className="bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white">
-                                            <option value="number">تُعبر عن رقم</option>
-                                            <option value="target">تُعبر عن فريق</option>
-                                        </select>
-                                        {newMeaningType === 'number' ? 
-                                            <input type="number" placeholder="القيمة" value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-sm text-white" /> :
-                                            <select value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white">
-                                                <option value="" disabled>اختر الفريق</option><option value="lana">لنا</option><option value="lahoma">لهم</option>
-                                            </select>
-                                        }
-                                    </div>
-                                    <button onClick={handleAddWord} className="w-full py-2 rounded bg-blue-600 text-white text-xs font-bold btn-press">حفظ الكلمة</button>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-bold text-slate-400 border-b border-slate-800 pb-1">المضافة يدوياً:</h4>
-                                    {Object.entries(customDict.numbers).map(([w, v]) => (
-                                        <div key={w} className="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800">
-                                            <span className="text-white text-xs font-bold">{w} <span className="text-emerald-400 text-[10px] ml-2">(رقم {v})</span></span>
-                                            <button onClick={() => handleRemoveWord('numbers', w)} className="text-rose-400"><i className="fa-solid fa-trash text-xs"></i></button>
-                                        </div>
-                                    ))}
-                                    {Object.entries(customDict.targets).map(([w, v]) => (
-                                        <div key={w} className="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800">
-                                            <span className="text-white text-xs font-bold">{w} <span className="text-blue-400 text-[10px] ml-2">(فريق {v==='lana'?'لنا':'لهم'})</span></span>
-                                            <button onClick={() => handleRemoveWord('targets', w)} className="text-rose-400"><i className="fa-solid fa-trash text-xs"></i></button>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
                         </div>
                     )}

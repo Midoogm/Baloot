@@ -108,25 +108,26 @@
                 pointsLahoma: ''
             });
 
+            // Fast Voice State
             const [isListening, setIsListening] = useState(false);
-            const [isSpeaking, setIsSpeaking] = useState(false);
+            const [voiceMode, setVoiceMode] = useState('oneshot'); // 'oneshot' | 'guided'
+            const [voicePrompt, setVoicePrompt] = useState("اضغط المايك للتحدث...");
             const [transcriptLog, setTranscriptLog] = useState("");
-            const [assistantMessage, setAssistantMessage] = useState("أدخل المشاريع يدوياً، ثم اضغط المايك لبدء المحادثة...");
-            const [convStep, setConvStep] = useState('idle');
             
             const recognitionRef = useRef(null);
-            const scrollContainerRef = useRef(null);
+            const guidedStepRef = useRef('idle'); // idle, type, buyer, points, done
+            const isListeningRef = useRef(false);
 
             useEffect(() => {
-                const saved = localStorage.getItem('balootProHistoryV5');
+                const saved = localStorage.getItem('balootProHistoryV6');
                 if (saved) try { setHistory(JSON.parse(saved)); } catch (e) {}
             }, []);
 
             useEffect(() => {
-                localStorage.setItem('balootProHistoryV5', JSON.stringify(history));
+                localStorage.setItem('balootProHistoryV6', JSON.stringify(history));
             }, [history]);
 
-            // Setup Voice Recognition
+            // Setup Fast Silent Voice Recognition
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
@@ -135,51 +136,136 @@
                     recognition.interimResults = false;
                     recognition.lang = 'ar-SA'; 
                     
-                    recognition.onstart = () => setIsListening(true);
-                    
                     recognition.onresult = (event) => {
                         const transcript = event.results[0][0].transcript;
                         setTranscriptLog(transcript);
-                        handleConversationalStep(transcript);
+                        processTranscript(transcript);
                     };
                     
                     recognition.onerror = () => {
-                        setIsListening(false);
-                        if (convStep !== 'idle') speakAndListen("لم أسمعك بوضوح. كرر لو سمحت؟", convStep);
+                        if (isListeningRef.current) {
+                            setVoicePrompt(prev => "❌ لم أفهم. كرر لو سمحت: " + prev.split('❌')[0]);
+                            try { recognition.stop(); } catch(e){} // Trigger onend to restart
+                        }
                     };
                     
-                    recognition.onend = () => setIsListening(false);
+                    recognition.onend = () => {
+                        // Instant silent restart for guided loop
+                        if (isListeningRef.current && guidedStepRef.current !== 'done') {
+                            try { recognition.start(); } catch(e){}
+                        } else {
+                            setIsListening(false);
+                            isListeningRef.current = false;
+                        }
+                    };
+                    
                     recognitionRef.current = recognition;
                 }
-            }, [form, convStep]);
+            }, [voiceMode]);
 
-            const speakAndListen = (text, nextStep) => {
-                window.speechSynthesis.cancel();
-                setAssistantMessage(text);
-                setConvStep(nextStep);
+            // NLP Engine - Instant state updates
+            const processTranscript = (transcript) => {
+                let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
+
+                const isSun = text.match(/(صن|سن|صام|صم|صط|سوم|صون|sun)/);
+                const isHokom = text.match(/(حكم|حقم|هكم|حك|hokom|hakam)/);
+                const isLana = text.match(/(لنا|إحنا|نحن|حنا|معنا|شرينا|اشترينا|حقنا|us|lana)/);
+                const isLahoma = text.match(/(لهم|هم|خصم|ضدهم|هما|خذوها|اشتروها|theirs|them|lahoma)/);
                 
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ar-SA';
-                utterance.rate = 1.1; 
-                
-                utterance.onstart = () => setIsSpeaking(true);
-                utterance.onend = () => {
-                    setIsSpeaking(false);
-                    if (nextStep !== 'idle' && nextStep !== 'done' && recognitionRef.current) {
-                        try { recognitionRef.current.start(); } catch(e) {}
-                    }
+                const words = {
+                    "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
+                    "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
+                    "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
+                    "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
+                    "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
+                    "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
+                    "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
                 };
+
+                let foundNumber = null;
+                const matches = text.match(/\d+/);
+                if (matches) foundNumber = parseInt(matches[0], 10);
+                else { for (let w in words) { if (text.includes(w)) { foundNumber = words[w]; break; } } }
+
+                const stopAndRestart = () => { try { recognitionRef.current.stop(); } catch(e){} };
+
+                setForm(prev => {
+                    let updates = { ...prev };
+                    
+                    if (guidedStepRef.current === 'oneshot') {
+                        if (isSun) updates.type = 'sun'; else if (isHokom) updates.type = 'hokom';
+                        if (isLana) updates.buyer = 'lana'; else if (isLahoma) updates.buyer = 'lahoma';
+                        if (foundNumber !== null) {
+                            const max = updates.type === 'sun' ? 26 : 16;
+                            if (foundNumber <= max) {
+                                if (isLahoma && !isLana && !text.includes('عطهم')) { updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber; }
+                                else { updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber; }
+                            }
+                        }
+                        guidedStepRef.current = 'done';
+                        setVoicePrompt("✅ تم التقاط الجولة! راجعها واعتمد.");
+                        isListeningRef.current = false;
+                        stopAndRestart();
+                    } 
+                    else if (guidedStepRef.current === 'type') {
+                        if (isSun) { updates.type = 'sun'; guidedStepRef.current = 'buyer'; setVoicePrompt("✅ صن. من المشتري؟ (قل: لنا / لهم)"); stopAndRestart(); }
+                        else if (isHokom) { updates.type = 'hokom'; guidedStepRef.current = 'buyer'; setVoicePrompt("✅ حكم. من المشتري؟ (قل: لنا / لهم)"); stopAndRestart(); }
+                        else { setVoicePrompt("❌ لم أفهم. نوع اللعب؟ (صن / حكم)"); stopAndRestart(); }
+                    }
+                    else if (guidedStepRef.current === 'buyer') {
+                        if (isLana) { updates.buyer = 'lana'; guidedStepRef.current = 'points'; setVoicePrompt("✅ المشتري لنا. كم الأبناط؟ (مثال: 12)"); stopAndRestart(); }
+                        else if (isLahoma) { updates.buyer = 'lahoma'; guidedStepRef.current = 'points'; setVoicePrompt("✅ المشتري لهم. كم الأبناط؟ (مثال: 12)"); stopAndRestart(); }
+                        else { setVoicePrompt("❌ لم أفهم. من المشتري؟ (لنا / لهم)"); stopAndRestart(); }
+                    }
+                    else if (guidedStepRef.current === 'points') {
+                        if (foundNumber !== null) {
+                            const max = updates.type === 'sun' ? 26 : 16;
+                            if (foundNumber <= max) {
+                                if (isLahoma && !isLana) { updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber; }
+                                else { updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber; }
+                                guidedStepRef.current = 'done';
+                                setVoicePrompt("✅ اكتملت! راجع النتيجة واعتمد.");
+                                isListeningRef.current = false;
+                                stopAndRestart();
+                            } else {
+                                setVoicePrompt(`❌ رقم كبير! الحد ${max}. كم الأبناط؟`); stopAndRestart();
+                            }
+                        } else {
+                            setVoicePrompt("❌ لم أسمع رقماً. كم الأبناط؟"); stopAndRestart();
+                        }
+                    }
+                    return updates;
+                });
+            };
+
+            const toggleListening = () => {
+                if (!recognitionRef.current) return alert("المتصفح لا يدعم التعرف على الصوت.");
                 
-                window.speechSynthesis.speak(utterance);
+                if (isListeningRef.current) {
+                    isListeningRef.current = false;
+                    setIsListening(false);
+                    guidedStepRef.current = 'idle';
+                    setVoicePrompt("تم الإيقاف.");
+                    try { recognitionRef.current.stop(); } catch(e){}
+                } else {
+                    isListeningRef.current = true;
+                    setIsListening(true);
+                    setTranscriptLog("");
+                    if (voiceMode === 'oneshot') {
+                        guidedStepRef.current = 'oneshot';
+                        setVoicePrompt("تحدث الآن: (المشتري، نوع اللعب، الأبناط. مثال: لنا صن والأبناط 12)");
+                    } else {
+                        guidedStepRef.current = 'type';
+                        setVoicePrompt("نوع اللعب؟ (قل: صن أو حكم)");
+                    }
+                    try { recognitionRef.current.start(); } catch(e){}
+                }
             };
 
             const handlePointsChange = (team, value) => {
                 const val = parseInt(value) || 0;
                 const max = form.type === 'sun' ? 26 : 16;
-                if (value === '') {
-                    setForm(prev => ({ ...prev, pointsLana: '', pointsLahoma: '' }));
-                    return;
-                }
+                if (value === '') { setForm(prev => ({ ...prev, pointsLana: '', pointsLahoma: '' })); return; }
                 if (val > max) return;
                 if (team === 'lana') setForm(prev => ({ ...prev, pointsLana: val, pointsLahoma: max - val }));
                 else setForm(prev => ({ ...prev, pointsLahoma: val, pointsLana: max - val }));
@@ -207,124 +293,12 @@
             const calculateProjectPoints = (team, type) => {
                 const p = form.projects[team];
                 let total = 0;
-                // Official Baloot Rules for Project Points
                 if (type === 'sun') {
-                    total += p.sira * 4;
-                    total += p.fifty * 10;
-                    total += p.hundred * 20;
-                    total += p.fourHundred * 40;
+                    total += p.sira * 4; total += p.fifty * 10; total += p.hundred * 20; total += p.fourHundred * 40;
                 } else {
-                    total += p.sira * 2;
-                    total += p.fifty * 5;
-                    total += p.hundred * 10;
-                    total += p.baloot * 2;
+                    total += p.sira * 2; total += p.fifty * 5; total += p.hundred * 10; total += p.baloot * 2;
                 }
                 return total;
-            };
-
-            // NLP Engine - Focuses only on Type, Buyer, and Points.
-            const handleConversationalStep = (transcript) => {
-                let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
-                let updates = { ...form };
-                let fastTrack = false;
-
-                // Synonyms Dictionary
-                const isSun = text.match(/(صن|سن|صام|صم|صط|سوم|صون|sun)/);
-                const isHokom = text.match(/(حكم|حقم|هكم|حك|hokom|hakam)/);
-                const isLana = text.match(/(لنا|إحنا|نحن|حنا|معنا|شرينا|اشترينا|حقنا|us|lana)/);
-                const isLahoma = text.match(/(لهم|هم|خصم|ضدهم|هما|خذوها|اشتروها|theirs|them|lahoma)/);
-
-                // Point Extraction (0-26 with heavy colloquial support)
-                const words = {
-                    "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
-                    "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
-                    "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
-                    "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
-                    "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
-                    "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
-                    "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
-                };
-
-                let foundNumber = null;
-                const matches = text.match(/\d+/);
-                if (matches) foundNumber = parseInt(matches[0], 10);
-                else {
-                    for (let w in words) {
-                        if (text.includes(w)) { foundNumber = words[w]; break; }
-                    }
-                }
-
-                // Sentence Parsing (If user says everything at once)
-                if ((isSun || isHokom) && (isLana || isLahoma) && foundNumber !== null) {
-                    updates.type = isSun ? 'sun' : 'hokom';
-                    updates.buyer = isLana ? 'lana' : 'lahoma';
-                    const max = updates.type === 'sun' ? 26 : 16;
-                    if (foundNumber <= max) {
-                        if (isLahoma && !isLana && !text.includes('عطهم')) {
-                            updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber;
-                        } else {
-                            updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber;
-                        }
-                    }
-                    setForm(updates);
-                    speakAndListen("تم تسجيل اللعب والمشتري والابناط. راجعها واضغط اعتماد.", 'done');
-                    return;
-                }
-
-                // Step-by-Step Parsing
-                if (convStep === 'type') {
-                    if (isSun) {
-                        updates.type = 'sun'; setForm(updates);
-                        speakAndListen("صن. مين المشتري؟ لنا ولا لهم؟", 'buyer');
-                    } else if (isHokom) {
-                        updates.type = 'hokom'; setForm(updates);
-                        speakAndListen("حكم. مين المشتري؟ لنا ولا لهم؟", 'buyer');
-                    } else {
-                        speakAndListen("عفواً، اللعب صن ولا حكم؟", 'type');
-                    }
-                } 
-                else if (convStep === 'buyer') {
-                    if (isLana) {
-                        updates.buyer = 'lana'; setForm(updates);
-                        speakAndListen("المشتري لنا. كم الأبناط؟", 'points');
-                    } else if (isLahoma) {
-                        updates.buyer = 'lahoma'; setForm(updates);
-                        speakAndListen("المشتري لهم. كم الأبناط؟", 'points');
-                    } else {
-                        speakAndListen("مين المشتري؟ لنا ولا لهم؟", 'buyer');
-                    }
-                }
-                else if (convStep === 'points') {
-                    if (foundNumber !== null) {
-                        const max = updates.type === 'sun' ? 26 : 16;
-                        if (foundNumber <= max) {
-                            if (isLahoma && !isLana) {
-                                updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber;
-                            } else {
-                                updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber;
-                            }
-                            setForm(updates);
-                            speakAndListen("تم. راجع النتيجة واضغط اعتماد.", 'done');
-                        } else {
-                            speakAndListen(`الرقم أكبر من المسموح. الحد الأقصى ${max}. كم الأبناط؟`, 'points');
-                        }
-                    } else {
-                        speakAndListen("لم أسمع رقماً. كم الأبناط؟", 'points');
-                    }
-                }
-            };
-
-            const startConversation = () => {
-                if (!recognitionRef.current) return alert("المتصفح لا يدعم التعرف على الصوت.");
-                setTranscriptLog("");
-                speakAndListen("نوع اللعب صن ولا حكم؟", 'type');
-            };
-
-            const stopConversation = () => {
-                window.speechSynthesis.cancel();
-                if (recognitionRef.current) recognitionRef.current.stop();
-                setConvStep('idle');
-                setAssistantMessage("تم إيقاف المساعد الصوتي.");
             };
 
             const calculateResults = () => {
@@ -371,9 +345,10 @@
                 
                 setHistory([{ id: Date.now(), lana: results.totLana, lahoma: results.totLahoma, details: form.type === 'sun' ? 'صن' : 'حكم' }, ...history]);
                 setIsModalOpen(false);
-                stopConversation();
+                isListeningRef.current = false;
+                setIsListening(false);
+                try { recognitionRef.current.stop(); } catch(e){}
                 
-                // Reset Form state for next round
                 setForm({
                     type: 'sun', buyer: 'lana',
                     projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
@@ -386,6 +361,12 @@
             const totalLana = history.reduce((acc, curr) => acc + curr.lana, 0);
             const totalLahoma = history.reduce((acc, curr) => acc + curr.lahoma, 0);
             const preview = calculateResults();
+            
+            // Grand Total Calculation for Display Label
+            const maxAbnat = form.type === 'sun' ? 26 : 16;
+            const totalLanaProj = calculateProjectPoints('lana', form.type);
+            const totalLahomaProj = calculateProjectPoints('lahoma', form.type);
+            const grandTotalPoints = maxAbnat + totalLanaProj + totalLahomaProj;
 
             return (
                 <div className="w-full max-w-md mx-auto h-[100dvh] flex flex-col relative overflow-hidden bg-[#0f172a]">
@@ -423,7 +404,7 @@
                     </div>
 
                     <div className="px-5 pb-5 shrink-0 z-10">
-                        <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); }} 
+                        <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); setVoicePrompt("اضغط المايك للتحدث..."); isListeningRef.current = false; setIsListening(false); }} 
                             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg btn-press shadow-lg shadow-blue-900/30 flex items-center justify-center">
                             <i className="fa-solid fa-plus mr-2"></i> تسجيل جولة
                         </button>
@@ -433,7 +414,7 @@
                         <div className="grid grid-cols-4 text-center bg-slate-900/80 p-3 font-bold text-slate-400 text-xs border-b border-slate-700/50 shrink-0">
                             <div>لنا</div><div>لعب</div><div>الفرق</div><div>لهم</div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2" ref={scrollContainerRef}>
+                        <div className="flex-1 overflow-y-auto p-2">
                             {history.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50 space-y-3">
                                     <i className="fa-solid fa-spade text-4xl"></i>
@@ -454,12 +435,12 @@
 
                     {isModalOpen && (
                         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm sm:items-center sm:justify-center">
-                            <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); stopConversation();}}></div>
+                            <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); isListeningRef.current = false; setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}}></div>
                             <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[92dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
                                 
                                 <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
                                     <h3 className="text-xl font-bold text-white tracking-wide">تسجيل النتيجة</h3>
-                                    <button onClick={() => {setIsModalOpen(false); stopConversation();}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
+                                    <button onClick={() => {setIsModalOpen(false); isListeningRef.current = false; setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
                                         <i className="fa-solid fa-xmark"></i>
                                     </button>
                                 </div>
@@ -517,19 +498,23 @@
                                         </div>
                                     </div>
 
-                                    {/* AI Voice Assistant */}
-                                    <div className="bg-slate-800/50 rounded-2xl p-3 border border-blue-900/40 relative overflow-hidden flex flex-col gap-2">
-                                        {isSpeaking && <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-500 animate-pulse"></div>}
+                                    {/* AI Silent Guided Assistant */}
+                                    <div className="bg-slate-800/50 rounded-2xl p-3 border border-blue-900/40 relative overflow-hidden flex flex-col gap-3">
                                         {isListening && <div className="absolute top-0 left-0 w-full h-0.5 bg-emerald-500 animate-pulse"></div>}
                                         
+                                        {/* Mode Toggle */}
+                                        <div className="flex bg-slate-950/50 rounded-lg p-1 border border-slate-800">
+                                            <button onClick={() => { setVoiceMode('oneshot'); setVoicePrompt("اضغط المايك للتحدث..."); }} className={`flex-1 py-1.5 rounded text-xs font-bold transition-all ${voiceMode === 'oneshot' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>سرد كامل</button>
+                                            <button onClick={() => { setVoiceMode('guided'); setVoicePrompt("اضغط المايك للتحدث..."); }} className={`flex-1 py-1.5 rounded text-xs font-bold transition-all ${voiceMode === 'guided' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>خطوة بخطوة</button>
+                                        </div>
+
                                         <div className="flex items-center gap-3">
-                                            <button onClick={convStep === 'idle' ? startConversation : stopConversation} 
-                                                className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl transition-colors btn-press ${convStep !== 'idle' ? 'bg-rose-600 text-white shadow-[0_0_10px_#e11d48]' : 'bg-blue-600 text-white shadow-[0_0_10px_#2563eb]'}`}>
-                                                <i className={`fa-solid ${convStep !== 'idle' ? 'fa-stop' : 'fa-microphone'}`}></i>
+                                            <button onClick={toggleListening} 
+                                                className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl transition-colors btn-press ${isListening ? 'bg-rose-600 text-white shadow-[0_0_10px_#e11d48]' : 'bg-blue-600 text-white shadow-[0_0_10px_#2563eb]'}`}>
+                                                <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
                                             </button>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[10px] text-blue-400 mb-0.5 font-bold uppercase tracking-wider">المساعد الصوتي</p>
-                                                <p className="text-sm text-slate-200 font-medium truncate">{assistantMessage}</p>
+                                                <p className="text-sm text-yellow-300 font-bold leading-tight">{voicePrompt}</p>
                                             </div>
                                         </div>
                                         {transcriptLog && (
@@ -559,8 +544,10 @@
 
                                     {/* Points Input */}
                                     <div>
-                                        <label className="text-xs text-slate-400 font-bold mb-2 block ml-1">الأبناط (المجموع {form.type === 'sun' ? 26 : 16}):</label>
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <label className="text-xs text-slate-300 font-bold mb-2 block ml-1 bg-slate-800 inline-block px-3 py-1 rounded-full border border-slate-700">
+                                            الأبناط (المجموع الكلي مع المشاريع: <span className="text-white">{grandTotalPoints}</span>)
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3 mt-1">
                                             <div className="relative">
                                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لنا</span>
                                                 <input type="number" value={form.pointsLana} onChange={(e) => handlePointsChange('lana', e.target.value)}
@@ -574,7 +561,7 @@
                                         </div>
                                     </div>
                                     
-                                    {/* Final Review Display inline */}
+                                    {/* Final Review Display */}
                                     <div className="pt-2">
                                         {preview.ready ? (
                                             <div className="flex flex-col items-center justify-center p-3 bg-slate-800/30 rounded-xl border border-slate-700/50">

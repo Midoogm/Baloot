@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <title>Baloot Pro Tracker - بلوت برو</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Baloot Pro - بلوت برو</title>
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Baloot Pro","short_name":"Baloot","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBmMTcyYSIvPjx0ZXh0IHg9IjUwIiB5PSI2MCIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZiYmYyNCI+4pmgPC90ZXh0Pjwvc3ZnPg==","sizes":"192x192","type":"image/svg+xml"}]}'>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -16,736 +21,386 @@
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: #0f172a;
-            background: radial-gradient(circle at top, #1e293b, #020617);
             color: #f8fafc;
             height: 100dvh; 
             margin: 0;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden;
+            overflow: hidden; /* STRICT ONE PAGE */
         }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(12px);
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
-        .gold-text {
-            background: linear-gradient(to right, #fbbf24, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .btn-press { transition: transform 0.1s ease, opacity 0.2s ease, box-shadow 0.2s ease; }
-        .btn-press:active { transform: scale(0.96); }
-        .progress-bar { transition: width 0.5s ease-out; }
-        
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        
+        .btn-press { transition: transform 0.1s ease; }
+        .btn-press:active { transform: scale(0.94); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; } /* Hidden scrollbar for clean look */
         .chip { transition: all 0.2s ease; position: relative; }
-        .chip.active {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
-        }
+        .chip.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
         .badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #e11d48;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
-            font-weight: 900;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            border: 2px solid #0f172a;
+            position: absolute; top: -6px; right: -6px; background: #e11d48; color: white;
+            border-radius: 50%; width: 18px; height: 18px; font-size: 10px; font-weight: 900;
+            display: flex; align-items: center; justify-content: center; border: 2px solid #0f172a;
         }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        @keyframes slideUpSheet {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up {
-            animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        input[type="number"]::-webkit-inner-spin-button, 
-        input[type="number"]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
+        /* Modal Animation */
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-pop { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            const sw = `
+                const CACHE = 'baloot-pro-offline';
+                self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll([location.href]))));
+                self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+            `;
+            const blob = new Blob([sw], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
         const SakahLimit = 152;
-        
         const PROJECT_DEF = [
-            { key: 'sira', label: 'سرا' },
-            { key: 'fifty', label: 'خمسين' },
-            { key: 'hundred', label: 'مية' },
-            { key: 'fourHundred', label: 'اربعمية' },
-            { key: 'baloot', label: 'بلوت' }
+            { key: 'sira', label: 'سرا' }, { key: 'fifty', label: 'خمسين' },
+            { key: 'hundred', label: 'مية' }, { key: 'fourHundred', label: '400' }, { key: 'baloot', label: 'بلوت' }
         ];
-
-        // Expanded Defaults based on rules & local dialects
-        const DEFAULT_NUMBERS = {
-            "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
-            "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
-            "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
-            "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
-            "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
-            "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
-            "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
-        };
-
-        const DEFAULT_TARGETS = {
-            "لنا": "lana", "إحنا": "lana", "نحن": "lana", "حنا": "lana", "معنا": "lana", "حقنا": "lana", "النا": "lana",
-            "لهم": "lahoma", "هم": "lahoma", "خصم": "lahoma", "ضدهم": "lahoma", "هما": "lahoma", "الهم": "lahoma", "معهم": "lahoma"
-        };
+        
+        const DEFAULT_NUMBERS = { "صفر":0,"واحد":1,"اثنين":2,"ثلاثه":3,"اربع":4,"خمس":5,"ست":6,"سبع":7,"ثمان":8,"تسع":9,"عشر":10,"عشره":10,"احداعش":11,"اثنعش":12,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"ستطعش":16,"سبعطعش":17,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26 };
+        const DEFAULT_TARGETS = { "لنا":"lana", "إحنا":"lana", "معنا":"lana", "لهم":"lahoma", "هم":"lahoma", "معهم":"lahoma" };
 
         const App = () => {
             const [history, setHistory] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
-            const [isDictModalOpen, setIsDictModalOpen] = useState(false);
+            const [editId, setEditId] = useState(null);
             
-            const [form, setForm] = useState({
-                type: 'sun',
-                buyer: 'lana',
-                projects: {
-                    lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 },
-                    lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }
-                },
-                pointsLana: '',
-                pointsLahoma: ''
-            });
-
+            // Settings State
+            const [gameMode, setGameMode] = useState('smart'); // 'smart' | 'free'
+            const [autoAnnounce, setAutoAnnounce] = useState(true);
             const [customDict, setCustomDict] = useState({ numbers: {}, targets: {} });
-            const [newWord, setNewWord] = useState('');
-            const [newMeaningType, setNewMeaningType] = useState('number');
-            const [newMeaningVal, setNewMeaningVal] = useState('');
 
+            const [form, setForm] = useState(getEmptyForm());
             const [isListening, setIsListening] = useState(false);
-            const [transcriptLog, setTranscriptLog] = useState("");
             const [voiceFeedback, setVoiceFeedback] = useState("");
-            
             const recognitionRef = useRef(null);
-            const fileInputRef = useRef(null);
+
+            function getEmptyForm() {
+                return {
+                    type: 'sun', buyer: 'lana',
+                    projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
+                    pointsLana: '', pointsLahoma: ''
+                };
+            }
 
             useEffect(() => {
-                const savedHistory = localStorage.getItem('balootProHistoryV8');
-                if (savedHistory) try { setHistory(JSON.parse(savedHistory)); } catch (e) {}
-                
-                const savedDict = localStorage.getItem('balootProDictV2');
-                if (savedDict) try { setCustomDict(JSON.parse(savedDict)); } catch (e) {}
+                const h = localStorage.getItem('bp_hist'); if (h) try { setHistory(JSON.parse(h)); } catch(e){}
+                const m = localStorage.getItem('bp_mode'); if (m) setGameMode(m);
+                const a = localStorage.getItem('bp_ann'); if (a) setAutoAnnounce(a === 'true');
             }, []);
 
-            useEffect(() => { localStorage.setItem('balootProHistoryV8', JSON.stringify(history)); }, [history]);
-            useEffect(() => { localStorage.setItem('balootProDictV2', JSON.stringify(customDict)); }, [customDict]);
+            useEffect(() => { localStorage.setItem('bp_hist', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('bp_mode', gameMode); }, [gameMode]);
+            useEffect(() => { localStorage.setItem('bp_ann', autoAnnounce); }, [autoAnnounce]);
 
+            // Voice Recognition
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
-                    recognition.continuous = false;
-                    recognition.interimResults = false;
-                    recognition.lang = 'ar-SA'; 
-                    
-                    recognition.onstart = () => {
-                        setIsListening(true);
-                        setVoiceFeedback("أستمع... (مثال: 'معنا 15' أو 'لهم ثمانية')");
-                    };
-                    
-                    recognition.onresult = (event) => {
-                        const transcript = event.results[0][0].transcript;
-                        setTranscriptLog(transcript);
-                        processPointsTranscript(transcript);
-                    };
-                    
-                    recognition.onerror = () => {
-                        setVoiceFeedback("❌ لم أتمكن من السماع بوضوح.");
-                        setIsListening(false);
-                    };
-                    
+                    recognition.continuous = false; recognition.lang = 'ar-SA';
+                    recognition.onstart = () => setIsListening(true);
+                    recognition.onresult = (event) => processPointsTranscript(event.results[0][0].transcript);
+                    recognition.onerror = () => { setVoiceFeedback("❌ لم أفهم"); setIsListening(false); };
                     recognition.onend = () => setIsListening(false);
                     recognitionRef.current = recognition;
                 }
-            }, [form, customDict]);
+            }, [form, gameMode]);
 
             const processPointsTranscript = (transcript) => {
-                let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
-                
-                const mergedNums = { ...DEFAULT_NUMBERS, ...customDict.numbers };
-                const mergedTargets = { ...DEFAULT_TARGETS, ...customDict.targets };
-
-                let foundNum = null;
+                let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".toLowerCase());
+                let foundNum = parseInt((text.match(/\d+/) || [])[0], 10) || null;
                 let foundTarget = null;
 
-                const digitMatch = text.match(/\d+/);
-                if (digitMatch) foundNum = parseInt(digitMatch[0], 10);
-
                 if (foundNum === null) {
-                    const sortedWords = Object.keys(mergedNums).sort((a, b) => b.length - a.length);
-                    for (const word of sortedWords) {
-                        if (text.includes(word)) { foundNum = mergedNums[word]; break; }
-                    }
+                    for (const [w, v] of Object.entries(DEFAULT_NUMBERS)) { if (text.includes(w)) { foundNum = v; break; } }
                 }
-                
-                const sortedTargets = Object.keys(mergedTargets).sort((a, b) => b.length - a.length);
-                for (const word of sortedTargets) {
-                    if (text.includes(word)) { foundTarget = mergedTargets[word]; break; }
-                }
+                for (const [w, v] of Object.entries(DEFAULT_TARGETS)) { if (text.includes(w)) { foundTarget = v; break; } }
 
                 if (foundNum !== null) {
                     const max = form.type === 'sun' ? 26 : 16;
-                    if (foundNum <= max) {
-                        const targetTeam = foundTarget || form.buyer; 
+                    const isValid = gameMode === 'free' || foundNum <= max;
+                    
+                    if (isValid) {
+                        const target = foundTarget || (gameMode === 'smart' ? form.buyer : 'lana');
                         setForm(prev => {
-                            let updates = { ...prev };
-                            if (targetTeam === 'lana') {
-                                updates.pointsLana = foundNum;
-                                updates.pointsLahoma = max - foundNum;
-                            } else {
-                                updates.pointsLahoma = foundNum;
-                                updates.pointsLana = max - foundNum;
-                            }
-                            return updates;
+                            let u = { ...prev };
+                            if (target === 'lana') { u.pointsLana = foundNum; if (gameMode === 'smart') u.pointsLahoma = max - foundNum; } 
+                            else { u.pointsLahoma = foundNum; if (gameMode === 'smart') u.pointsLana = max - foundNum; }
+                            return u;
                         });
-                        setVoiceFeedback(`✅ تم تسجيل ${foundNum} لفريق ${targetTeam === 'lana' ? 'لنا' : 'لهم'}`);
-                    } else {
-                        setVoiceFeedback(`❌ الرقم ${foundNum} يتجاوز الحد (${max})`);
-                    }
-                } else {
-                    setVoiceFeedback("❌ لم أتمكن من التقاط الأبناط.");
-                }
+                        setVoiceFeedback(`✅ ${foundNum} ${target === 'lana' ? 'لنا' : 'لهم'}`);
+                    } else { setVoiceFeedback(`❌ تجاوز الحد (${max})`); }
+                } else { setVoiceFeedback("❌ لم التقط الرقم"); }
             };
 
             const toggleListening = () => {
-                if (!recognitionRef.current) return alert("المتصفح لا يدعم التعرف على الصوت.");
-                if (isListening) {
-                    recognitionRef.current.stop();
-                } else {
-                    setTranscriptLog("");
-                    recognitionRef.current.start();
-                }
+                if (!recognitionRef.current) return;
+                isListening ? recognitionRef.current.stop() : recognitionRef.current.start();
             };
 
-            // Smart Input Overwrite Logic
-            const handlePointsChange = (team, value) => {
-                let valStr = value.replace(/^0+/, ''); 
-                if (valStr === '') {
-                    setForm(prev => ({ ...prev, pointsLana: '', pointsLahoma: '' }));
-                    return;
-                }
+            const speakText = (text) => {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'ar-SA'; u.rate = 1.1;
+                window.speechSynthesis.speak(u);
+            };
+
+            // Inputs
+            const handlePointsChange = (team, valStr) => {
+                valStr = valStr.replace(/^0+/, '');
+                if (valStr === '') { setForm(p => ({ ...p, pointsLana: team === 'lana' ? '' : p.pointsLana, pointsLahoma: team === 'lahoma' ? '' : p.pointsLahoma })); return; }
                 
                 let val = parseInt(valStr, 10);
                 if (isNaN(val)) return;
 
-                const max = form.type === 'sun' ? 26 : 16;
-                
-                // If it exceeds max, assume user started typing a completely new number
-                if (val > max) {
-                    val = parseInt(valStr.slice(-1), 10);
+                if (gameMode === 'smart') {
+                    const max = form.type === 'sun' ? 26 : 16;
+                    if (val > max) val = parseInt(valStr.slice(-1), 10); // Auto-overwrite behavior
+                    if (team === 'lana') setForm(p => ({ ...p, pointsLana: val, pointsLahoma: max - val }));
+                    else setForm(p => ({ ...p, pointsLahoma: val, pointsLana: max - val }));
+                } else {
+                    // Free Mode
+                    if (team === 'lana') setForm(p => ({ ...p, pointsLana: val }));
+                    else setForm(p => ({ ...p, pointsLahoma: val }));
                 }
-                
-                if (team === 'lana') setForm(prev => ({ ...prev, pointsLana: val, pointsLahoma: max - val }));
-                else setForm(prev => ({ ...prev, pointsLahoma: val, pointsLana: max - val }));
             };
 
-            const handleTypeChange = (type) => setForm(prev => ({ ...prev, type, pointsLana: '', pointsLahoma: '' }));
-
-            const handleProjectClick = (team, projKey) => {
-                setForm(prev => {
-                    const newProjects = { ...prev.projects };
-                    newProjects[team] = { ...newProjects[team] };
-                    newProjects[team][projKey] += 1;
-                    return { ...prev, projects: newProjects };
+            const handleProj = (team, key) => {
+                setForm(p => {
+                    let u = { ...p }; u.projects[team] = { ...u.projects[team] }; u.projects[team][key] += 1; return u;
                 });
             };
 
-            const clearProjects = (team) => {
-                setForm(prev => {
-                    const newProjects = { ...prev.projects };
-                    newProjects[team] = { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 };
-                    return { ...prev, projects: newProjects };
-                });
-            };
-
-            const calculateProjectPoints = (team, type) => {
+            const calcProjPts = (team, type) => {
                 const p = form.projects[team];
-                let total = 0;
-                if (type === 'sun') {
-                    total += p.sira * 4; total += p.fifty * 10; total += p.hundred * 20; total += p.fourHundred * 40;
-                } else {
-                    total += p.sira * 2; total += p.fifty * 5; total += p.hundred * 10; total += p.baloot * 2;
-                }
-                return total;
+                if (gameMode === 'free' || type === 'sun') return (p.sira*4) + (p.fifty*10) + (p.hundred*20) + (p.fourHundred*40) + (p.baloot*2);
+                return (p.sira*2) + (p.fifty*5) + (p.hundred*10) + (p.baloot*2);
             };
 
-            const calculateResults = () => {
-                let baseLana = parseInt(form.pointsLana) || 0;
-                let baseLahoma = parseInt(form.pointsLahoma) || 0;
-                let maxPts = form.type === 'sun' ? 26 : 16;
-                let kabootPts = form.type === 'sun' ? 44 : 26;
+            const calcResults = () => {
+                let pL = parseInt(form.pointsLana) || 0; let pH = parseInt(form.pointsLahoma) || 0;
+                let prL = calcProjPts('lana', form.type); let prH = calcProjPts('lahoma', form.type);
                 
-                let projLanaPts = calculateProjectPoints('lana', form.type);
-                let projLahomaPts = calculateProjectPoints('lahoma', form.type);
-                
-                let totLana = baseLana + projLanaPts;
-                let totLahoma = baseLahoma + projLahomaPts;
-                let isLoss = false;
-                let lossMessage = "";
-
-                if (baseLana === maxPts) {
-                    totLana = kabootPts + projLanaPts + projLahomaPts;
-                    totLahoma = 0;
-                    lossMessage = "كبوت لنا! 🔥";
-                } else if (baseLahoma === maxPts) {
-                    totLahoma = kabootPts + projLanaPts + projLahomaPts;
-                    totLana = 0;
-                    lossMessage = "كبوت لهم! 💀";
-                } else {
-                    if (form.buyer === 'lana' && totLana <= totLahoma && (baseLana + baseLahoma === maxPts)) {
-                        isLoss = true;
-                        totLahoma = maxPts + projLanaPts + projLahomaPts;
-                        totLana = 0;
-                        lossMessage = "خسارة علينا! (سقطنا) 💔";
-                    } else if (form.buyer === 'lahoma' && totLahoma <= totLana && (baseLana + baseLahoma === maxPts)) {
-                        isLoss = true;
-                        totLana = maxPts + projLanaPts + projLahomaPts;
-                        totLahoma = 0;
-                        lossMessage = "خسارة عليهم! (طيحناهم) 🏆";
-                    }
+                if (gameMode === 'free') {
+                    return { totLana: pL + prL, totLahoma: pH + prH, ready: (form.pointsLana !== '' || form.pointsLahoma !== '') };
                 }
-                return { totLana, totLahoma, isLoss, lossMessage, ready: (baseLana + baseLahoma === maxPts) };
+
+                let max = form.type === 'sun' ? 26 : 16;
+                let kaboot = form.type === 'sun' ? 44 : 26;
+                let tL = pL + prL, tH = pH + prH, msg = "";
+
+                if (pL === max) { tL = kaboot + prL + prH; tH = 0; msg = "كبوت لنا 🔥"; } 
+                else if (pH === max) { tH = kaboot + prL + prH; tL = 0; msg = "كبوت لهم 💀"; } 
+                else if (form.buyer === 'lana' && tL <= tH && (pL + pH === max)) { tH = max + prL + prH; tL = 0; msg = "سقطنا 💔"; } 
+                else if (form.buyer === 'lahoma' && tH <= tL && (pL + pH === max)) { tL = max + prL + prH; tH = 0; msg = "طيحناهم 🏆"; }
+
+                return { totLana: tL, totLahoma: tH, lossMessage: msg, ready: (pL + pH === max) };
             };
 
             const submitRound = () => {
-                const results = calculateResults();
-                if (!results.ready) return alert("الرجاء إدخال الأبناط بشكل صحيح لتكتمل الجولة.");
+                const res = calcResults();
+                if (!res.ready) return;
+
+                const roundData = { id: editId || Date.now(), lana: res.totLana, lahoma: res.totLahoma, details: gameMode === 'smart' ? (form.type === 'sun' ? 'صن' : 'حكم') : 'حر' };
                 
-                setHistory([{ id: Date.now(), lana: results.totLana, lahoma: results.totLahoma, details: form.type === 'sun' ? 'صن' : 'حكم' }, ...history]);
-                setIsModalOpen(false);
-                setIsListening(false);
-                try { recognitionRef.current.stop(); } catch(e){}
+                if (editId) setHistory(history.map(r => r.id === editId ? roundData : r));
+                else setHistory([roundData, ...history]);
                 
-                setForm({
-                    type: 'sun', buyer: 'lana',
-                    projects: { lana: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 }, lahoma: { sira: 0, fifty: 0, hundred: 0, fourHundred: 0, baloot: 0 } },
-                    pointsLana: '', pointsLahoma: ''
-                });
+                if (autoAnnounce && !editId) speakText(`النتيجة: حصلنا على ${res.totLana}، وهم ${res.totLahoma}`);
+                
+                closeModal();
             };
 
-            const resetGame = () => { if (window.confirm("تصفير النتيجة والبدء من جديد؟")) setHistory([]); };
-
-            const handleAddWord = () => {
-                if (!newWord.trim() || newMeaningVal === '') return;
-                setCustomDict(prev => {
-                    const newDict = { ...prev };
-                    if (newMeaningType === 'number') {
-                        newDict.numbers = { ...newDict.numbers, [newWord.toLowerCase()]: parseInt(newMeaningVal, 10) };
-                    } else {
-                        newDict.targets = { ...newDict.targets, [newWord.toLowerCase()]: newMeaningVal };
-                    }
-                    return newDict;
-                });
-                setNewWord('');
-                setNewMeaningVal('');
+            const openEdit = (round) => {
+                // In edit mode, we just inject raw numbers as free mode to avoid re-calculating complex lost rounds backwards
+                setGameMode('free'); 
+                setForm({ ...getEmptyForm(), pointsLana: round.lana, pointsLahoma: round.lahoma });
+                setEditId(round.id);
+                setIsModalOpen(true);
             };
 
-            const handleRemoveWord = (type, word) => {
-                setCustomDict(prev => {
-                    const newDict = { ...prev };
-                    const newGroup = { ...newDict[type] };
-                    delete newGroup[word];
-                    newDict[type] = newGroup;
-                    return newDict;
-                });
-            };
+            const closeModal = () => { setIsModalOpen(false); setEditId(null); setForm(getEmptyForm()); setVoiceFeedback(""); try{recognitionRef.current.stop()}catch(e){} };
 
-            const handleExportDict = () => {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customDict));
-                const anchor = document.createElement('a');
-                anchor.setAttribute("href", dataStr);
-                anchor.setAttribute("download", "baloot_dictionary.json");
-                document.body.appendChild(anchor);
-                anchor.click();
-                anchor.remove();
-            };
-
-            const handleImportDict = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        if (data.numbers !== undefined || data.targets !== undefined) {
-                            setCustomDict(data);
-                            alert("تم استيراد القاموس بنجاح!");
-                        } else { alert("تنسيق الملف غير صالح."); }
-                    } catch(err) { alert("حدث خطأ أثناء قراءة الملف."); }
-                };
-                reader.readAsText(file);
-                e.target.value = ''; 
-            };
-
-            const totalLana = history.reduce((acc, curr) => acc + curr.lana, 0);
-            const totalLahoma = history.reduce((acc, curr) => acc + curr.lahoma, 0);
-            const preview = calculateResults();
-            
-            const maxAbnat = form.type === 'sun' ? 26 : 16;
-            const totalLanaProj = calculateProjectPoints('lana', form.type);
-            const totalLahomaProj = calculateProjectPoints('lahoma', form.type);
-            const grandTotalPoints = maxAbnat + totalLanaProj + totalLahomaProj;
+            const tL = history.reduce((a, c) => a + c.lana, 0);
+            const tH = history.reduce((a, c) => a + c.lahoma, 0);
+            const preview = calcResults();
 
             return (
-                <div className="w-full max-w-md mx-auto h-[100dvh] flex flex-col relative overflow-hidden bg-[#0f172a]">
+                <div className="flex flex-col h-[100dvh] bg-[#0f172a] overflow-hidden">
                     
-                    {/* Header */}
-                    <div className="px-5 pt-6 pb-4 shrink-0 flex flex-col z-10">
-                        <div className="flex justify-between items-center mb-5">
-                            <button onClick={resetGame} className="text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition">
-                                <i className="fa-solid fa-rotate-right text-lg"></i>
-                            </button>
-                            <h1 className="text-2xl font-black tracking-wider gold-text">بلوت برو</h1>
-                            <button onClick={() => history.length > 0 && setHistory(history.slice(1))} className={`p-2 rounded-full transition ${history.length === 0 ? 'text-slate-600' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-                                <i className="fa-solid fa-arrow-rotate-left text-lg"></i>
+                    {/* Compact Top Bar */}
+                    <div className="px-4 pt-4 pb-2 shrink-0 flex justify-between items-center z-10">
+                        <div className="flex gap-2">
+                            <button onClick={() => {if(window.confirm("تصفير؟")) setHistory([])}} className="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center btn-press"><i className="fa-solid fa-rotate-right"></i></button>
+                            <button onClick={() => setGameMode(m => m === 'smart' ? 'free' : 'smart')} className={`w-9 h-9 rounded-full flex items-center justify-center btn-press font-bold text-xs ${gameMode==='smart'?'bg-indigo-600 text-white':'bg-slate-700 text-slate-300'}`}>
+                                {gameMode==='smart' ? <i className="fa-solid fa-brain"></i> : <i className="fa-solid fa-unlock"></i>}
                             </button>
                         </div>
-                        <div className="w-full bg-slate-800/80 rounded-full h-1.5 flex overflow-hidden">
-                            <div className="bg-emerald-500 h-full progress-bar" style={{width: `${Math.min((totalLana/SakahLimit)*100, 100)}%`}}></div>
+                        
+                        <h1 className="text-xl font-black bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">بلوت برو</h1>
+                        
+                        <div className="flex gap-2">
+                            <button onClick={() => speakText(`المجموع الكلي: لنا ${tL}، ولهم ${tH}`)} className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center btn-press"><i className="fa-solid fa-volume-high"></i></button>
+                            <button onClick={() => setAutoAnnounce(!autoAnnounce)} className={`w-9 h-9 rounded-full flex items-center justify-center btn-press ${autoAnnounce?'bg-emerald-600/20 text-emerald-400':'bg-slate-800 text-slate-500'}`}>
+                                <i className={`fa-solid ${autoAnnounce?'fa-comment-dots':'fa-comment-slash'}`}></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="px-4 pb-3 shrink-0">
+                        <div className="w-full bg-slate-800 rounded-full h-1.5 flex overflow-hidden">
+                            <div className="bg-emerald-500 h-full transition-all" style={{width: `${Math.min((tL/SakahLimit)*100, 100)}%`}}></div>
                             <div className="flex-1"></div>
-                            <div className="bg-rose-500 h-full progress-bar" style={{width: `${Math.min((totalLahoma/SakahLimit)*100, 100)}%`}}></div>
+                            <div className="bg-rose-500 h-full transition-all" style={{width: `${Math.min((tH/SakahLimit)*100, 100)}%`}}></div>
                         </div>
                     </div>
 
-                    {/* Scores */}
-                    <div className="px-5 pb-5 shrink-0 z-10">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="glass-panel rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden">
-                                {totalLana >= SakahLimit && <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400"></div>}
-                                <span className="text-sm font-bold text-slate-400 mb-1">لنا (Us)</span>
-                                <span className="text-5xl font-black text-white">{totalLana}</span>
-                            </div>
-                            <div className="glass-panel rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden">
-                                {totalLahoma >= SakahLimit && <div className="absolute top-0 left-0 w-full h-1 bg-rose-400"></div>}
-                                <span className="text-sm font-bold text-slate-400 mb-1">لهم (Them)</span>
-                                <span className="text-5xl font-black text-white">{totalLahoma}</span>
-                            </div>
+                    {/* Score Cards */}
+                    <div className="px-4 pb-3 shrink-0 grid grid-cols-2 gap-3">
+                        <div className="glass rounded-2xl p-4 flex flex-col items-center justify-center">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">لنا (Us)</span>
+                            <span className="text-4xl font-black text-white">{tL}</span>
+                        </div>
+                        <div className="glass rounded-2xl p-4 flex flex-col items-center justify-center">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">لهم (Them)</span>
+                            <span className="text-4xl font-black text-white">{tH}</span>
                         </div>
                     </div>
 
-                    <div className="px-5 pb-5 shrink-0 z-10">
-                        <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); setVoiceFeedback(""); }} 
-                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg btn-press shadow-lg shadow-blue-900/30 flex items-center justify-center">
-                            <i className="fa-solid fa-plus mr-2"></i> تسجيل جولة
+                    {/* Main Action */}
+                    <div className="px-4 pb-3 shrink-0">
+                        <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-lg btn-press shadow-lg shadow-blue-900/30 flex justify-center items-center gap-2">
+                            <i className="fa-solid fa-plus"></i> تسجيل جولة
                         </button>
                     </div>
 
-                    {/* Ledger */}
-                    <div className="flex-1 glass-panel rounded-t-3xl overflow-hidden flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-0 mx-2 mb-0">
-                        <div className="grid grid-cols-4 text-center bg-slate-900/80 p-3 font-bold text-slate-400 text-xs border-b border-slate-700/50 shrink-0">
-                            <div>لنا</div><div>لعب</div><div>الفرق</div><div>لهم</div>
+                    {/* Ledger (Scrollable remaining space) */}
+                    <div className="flex-1 glass rounded-t-3xl mx-2 flex flex-col overflow-hidden border border-slate-700/50 border-b-0 relative">
+                        <div className="grid grid-cols-4 text-center bg-slate-900/80 p-2 font-bold text-slate-400 text-[10px] border-b border-slate-700/50 shrink-0 uppercase">
+                            <div>لنا</div><div>النوع</div><div>تعديل</div><div>لهم</div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2">
+                        <div className="flex-1 overflow-y-auto p-1 pb-4">
                             {history.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50 space-y-3">
-                                    <i className="fa-solid fa-spade text-4xl"></i>
-                                    <span className="text-sm font-medium">ابدأ اللعب لتسجيل الجولات</span>
-                                </div>
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><i className="fa-solid fa-spade text-3xl mb-2"></i><span className="text-xs">لا يوجد جولات</span></div>
                             ) : (
-                                history.map((round) => (
-                                    <div key={round.id} className="grid grid-cols-4 text-center p-2.5 border-b border-slate-700/30 hover:bg-slate-800/30 transition items-center">
-                                        <div className="text-emerald-400 font-bold text-base">{round.lana > 0 ? round.lana : '-'}</div>
-                                        <div className="text-slate-400 text-[10px] font-bold bg-slate-800/80 px-2 py-1 rounded w-max mx-auto">{round.details}</div>
-                                        <div className="text-slate-500 text-xs">{Math.abs(round.lana - round.lahoma) > 0 ? Math.abs(round.lana - round.lahoma) : '-'}</div>
-                                        <div className="text-rose-400 font-bold text-base">{round.lahoma > 0 ? round.lahoma : '-'}</div>
+                                history.map((r) => (
+                                    <div key={r.id} onClick={() => openEdit(r)} className="grid grid-cols-4 text-center p-2 border-b border-slate-800 hover:bg-slate-800/50 transition cursor-pointer items-center">
+                                        <div className="text-emerald-400 font-bold">{r.lana > 0 ? r.lana : '-'}</div>
+                                        <div className="text-slate-400 text-[10px] bg-slate-800 px-1 py-0.5 rounded w-max mx-auto">{r.details}</div>
+                                        <div className="text-slate-600 text-xs"><i className="fa-solid fa-pen-to-square"></i></div>
+                                        <div className="text-rose-400 font-bold">{r.lahoma > 0 ? r.lahoma : '-'}</div>
                                     </div>
                                 ))
                             )}
                         </div>
                     </div>
 
-                    {/* Entry Modal */}
+                    {/* FULL SCREEN MODAL - ZERO SCROLLING */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm sm:items-center sm:justify-center">
-                            <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}}></div>
-                            <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[92dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
+                        <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col animate-pop">
+                            
+                            {/* Modal Header */}
+                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 shrink-0">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    {editId ? 'تعديل الجولة' : 'تسجيل النتيجة'} 
+                                    <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded-full text-slate-300">{gameMode === 'smart' ? 'ذكي' : 'حر'}</span>
+                                </h3>
+                                <button onClick={closeModal} className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex justify-center items-center btn-press"><i className="fa-solid fa-xmark"></i></button>
+                            </div>
+
+                            {/* Modal Body - Perfectly portioned using Flex */}
+                            <div className="flex-1 flex flex-col p-4 gap-4 justify-center">
                                 
-                                <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
-                                    <h3 className="text-xl font-bold text-white tracking-wide">تسجيل النتيجة</h3>
-                                    <div className="flex gap-3">
-                                        <button onClick={() => setIsDictModalOpen(true)} className="text-blue-400 hover:text-white bg-blue-900/30 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
-                                            <i className="fa-solid fa-book"></i>
-                                        </button>
-                                        <button onClick={() => {setIsModalOpen(false); setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
-                                            <i className="fa-solid fa-xmark"></i>
-                                        </button>
+                                {/* Projects (Always visible) */}
+                                <div className="bg-slate-800/30 p-3 rounded-2xl border border-slate-700/50">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
+                                            <span className="text-[10px] text-emerald-400 font-bold shrink-0">لنا:</span>
+                                            {PROJECT_DEF.map(p => {
+                                                const c = form.projects.lana[p.key];
+                                                return <button key={'l'+p.key} onClick={() => handleProj('lana', p.key)} className={`chip px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 ${c>0?'bg-emerald-600 text-white':'bg-slate-800 text-slate-400 border border-slate-700'}`}>{p.label} {c>0&&<span className="badge bg-slate-900">{c}</span>}</button>
+                                            })}
+                                            {Object.values(form.projects.lana).some(v=>v>0) && <button onClick={()=>setForm(p=>{let u={...p}; u.projects.lana={sira:0,fifty:0,hundred:0,fourHundred:0,baloot:0}; return u})} className="p-1.5 text-rose-400 shrink-0"><i className="fa-solid fa-xmark"></i></button>}
+                                        </div>
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
+                                            <span className="text-[10px] text-rose-400 font-bold shrink-0">لهم:</span>
+                                            {PROJECT_DEF.map(p => {
+                                                const c = form.projects.lahoma[p.key];
+                                                return <button key={'h'+p.key} onClick={() => handleProj('lahoma', p.key)} className={`chip px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 ${c>0?'bg-rose-600 text-white':'bg-slate-800 text-slate-400 border border-slate-700'}`}>{p.label} {c>0&&<span className="badge bg-slate-900">{c}</span>}</button>
+                                            })}
+                                            {Object.values(form.projects.lahoma).some(v=>v>0) && <button onClick={()=>setForm(p=>{let u={...p}; u.projects.lahoma={sira:0,fifty:0,hundred:0,fourHundred:0,baloot:0}; return u})} className="p-1.5 text-rose-400 shrink-0"><i className="fa-solid fa-xmark"></i></button>}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                                    
-                                    {/* 1. Projects Section */}
-                                    <div className="space-y-4 bg-slate-950/30 p-4 rounded-2xl border border-slate-800">
-                                        <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide border-b border-slate-800 pb-2">
-                                            أولاً: المشاريع إن وجدت
+                                {/* Smart Mode Toggles */}
+                                {gameMode === 'smart' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                                            <button onClick={()=>handleTypeChange('sun')} className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${form.type==='sun'?'bg-indigo-600 text-white':'text-slate-500'}`}>صن</button>
+                                            <button onClick={()=>handleTypeChange('hokom')} className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${form.type==='hokom'?'bg-indigo-600 text-white':'text-slate-500'}`}>حكم</button>
+                                        </div>
+                                        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                                            <button onClick={()=>setForm(p=>({...p, buyer:'lana'}))} className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${form.buyer==='lana'?'bg-emerald-600 text-white':'text-slate-500'}`}>لنا</button>
+                                            <button onClick={()=>setForm(p=>({...p, buyer:'lahoma'}))} className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${form.buyer==='lahoma'?'bg-rose-600 text-white':'text-slate-500'}`}>لهم</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Points Entry (The core) */}
+                                <div className="bg-slate-950/50 p-4 rounded-3xl border border-slate-800 shadow-inner flex-1 flex flex-col justify-center">
+                                    <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-center">
+                                        <div className="relative flex flex-col items-center">
+                                            <label className="text-[10px] text-slate-500 mb-1">لنا</label>
+                                            <input type="number" inputMode="numeric" pattern="[0-9]*" value={form.pointsLana} onChange={e=>handlePointsChange('lana', e.target.value)} onFocus={e=>e.target.select()} className="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 text-3xl font-black text-center text-emerald-400 focus:outline-none focus:border-emerald-500 focus:bg-slate-800 transition-colors" placeholder="0" />
                                         </div>
                                         
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2 ml-1">
-                                                <label className="text-xs text-slate-400 font-bold">مشاريعنا (لنا): {calculateProjectPoints('lana', form.type) > 0 && <span className="text-emerald-400 ml-1">+{calculateProjectPoints('lana', form.type)} بنط</span>}</label>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {PROJECT_DEF.map(p => {
-                                                    const count = form.projects.lana[p.key];
-                                                    return (
-                                                        <button key={'lana'+p.key} onClick={() => handleProjectClick('lana', p.key)} 
-                                                            className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
-                                                            {p.label} {count > 0 && <span className="badge">{count}</span>}
-                                                        </button>
-                                                    );
-                                                })}
-                                                {Object.values(form.projects.lana).some(v => v > 0) && (
-                                                    <button onClick={() => clearProjects('lana')} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <button onClick={toggleListening} className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all btn-press shadow-lg z-10 mt-5 ${isListening ? 'bg-rose-600 text-white shadow-[0_0_20px_#e11d48] scale-110 animate-pulse border-rose-400' : 'bg-blue-600 text-white shadow-blue-900/50'}`}>
+                                            <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
+                                        </button>
 
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2 ml-1">
-                                                <label className="text-xs text-slate-400 font-bold">مشاريعهم (لهم): {calculateProjectPoints('lahoma', form.type) > 0 && <span className="text-rose-400 ml-1">+{calculateProjectPoints('lahoma', form.type)} بنط</span>}</label>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {PROJECT_DEF.map(p => {
-                                                    const count = form.projects.lahoma[p.key];
-                                                    return (
-                                                        <button key={'lahoma'+p.key} onClick={() => handleProjectClick('lahoma', p.key)} 
-                                                            className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
-                                                            {p.label} {count > 0 && <span className="badge">{count}</span>}
-                                                        </button>
-                                                    );
-                                                })}
-                                                {Object.values(form.projects.lahoma).some(v => v > 0) && (
-                                                    <button onClick={() => clearProjects('lahoma')} className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-400 btn-press"><i className="fa-solid fa-xmark"></i></button>
-                                                )}
-                                            </div>
+                                        <div className="relative flex flex-col items-center">
+                                            <label className="text-[10px] text-slate-500 mb-1">لهم</label>
+                                            <input type="number" inputMode="numeric" pattern="[0-9]*" value={form.pointsLahoma} onChange={e=>handlePointsChange('lahoma', e.target.value)} onFocus={e=>e.target.select()} className="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 text-3xl font-black text-center text-rose-400 focus:outline-none focus:border-rose-500 focus:bg-slate-800 transition-colors" placeholder="0" />
                                         </div>
                                     </div>
 
-                                    {/* 2. Type & Buyer Toggles */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5 bg-slate-950/30 p-2 rounded-2xl border border-slate-800">
-                                            <label className="text-[10px] text-slate-500 font-bold ml-1 uppercase">ثانياً: اللعب</label>
-                                            <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800">
-                                                <button onClick={() => handleTypeChange('sun')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.type === 'sun' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>صن</button>
-                                                <button onClick={() => handleTypeChange('hokom')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.type === 'hokom' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>حكم</button>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5 bg-slate-950/30 p-2 rounded-2xl border border-slate-800">
-                                            <label className="text-[10px] text-slate-500 font-bold ml-1 uppercase">ثالثاً: المشتري</label>
-                                            <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800">
-                                                <button onClick={() => setForm({...form, buyer: 'lana'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.buyer === 'lana' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500'}`}>لنا</button>
-                                                <button onClick={() => setForm({...form, buyer: 'lahoma'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.buyer === 'lahoma' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-500'}`}>لهم</button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 3. Points Input & Voice Recognition */}
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] text-slate-500 font-bold ml-1 uppercase">
-                                            رابعاً: الأبناط (المجموع الكلي: <span className="text-white">{grandTotalPoints}</span>)
-                                        </label>
-                                        
-                                        <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800 relative shadow-inner">
-                                            <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
-                                                <div className="relative">
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لنا</span>
-                                                    <input type="number" value={form.pointsLana} 
-                                                        onChange={(e) => handlePointsChange('lana', e.target.value)}
-                                                        onFocus={(e) => e.target.select()}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pr-9 pl-2 text-xl font-black text-center text-white focus:outline-none focus:border-emerald-500 focus:bg-slate-800 transition-colors" placeholder="0" />
-                                                </div>
-                                                
-                                                {/* Floating Mic for Points ONLY */}
-                                                <button onClick={toggleListening} 
-                                                    className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all btn-press shadow-lg z-10 border border-slate-700/50
-                                                    ${isListening ? 'bg-rose-600 text-white shadow-[0_0_20px_#e11d48] scale-110 animate-pulse border-rose-400' : 'bg-slate-800 text-blue-400 hover:text-white hover:bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.2)]'}`}>
-                                                    <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
-                                                </button>
-
-                                                <div className="relative">
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لهم</span>
-                                                    <input type="number" value={form.pointsLahoma} 
-                                                        onChange={(e) => handlePointsChange('lahoma', e.target.value)}
-                                                        onFocus={(e) => e.target.select()}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pr-9 pl-2 text-xl font-black text-center text-white focus:outline-none focus:border-rose-500 focus:bg-slate-800 transition-colors" placeholder="0" />
-                                                </div>
-                                            </div>
-
-                                            {/* Voice Feedback Mini-Log */}
-                                            {(transcriptLog || voiceFeedback) && (
-                                                <div className="mt-4 pt-3 border-t border-slate-800/50">
-                                                    {transcriptLog && <p className="text-xs font-mono text-slate-400 mb-1">سمعت: <span className="text-emerald-400">"{transcriptLog}"</span></p>}
-                                                    {voiceFeedback && <p className={`text-xs font-bold ${voiceFeedback.includes('✅') ? 'text-blue-300' : 'text-rose-400'}`}>{voiceFeedback}</p>}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    {voiceFeedback && <p className={`text-center mt-3 text-xs font-bold ${voiceFeedback.includes('✅')?'text-emerald-400':'text-rose-400'}`}>{voiceFeedback}</p>}
                                     
-                                    {/* Final Review Display */}
-                                    <div className="pt-2">
-                                        {preview.ready ? (
-                                            <div className="flex flex-col items-center justify-center p-3 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                                                <div className="flex justify-center items-center gap-4 text-xl font-black">
-                                                    <span className={preview.totLana > preview.totLahoma ? "text-emerald-400" : "text-white"}>{preview.totLana}</span>
-                                                    <span className="text-slate-600">-</span>
-                                                    <span className={preview.totLahoma > preview.totLana ? "text-rose-400" : "text-white"}>{preview.totLahoma}</span>
-                                                </div>
-                                                {preview.lossMessage && <div className="text-rose-400 text-xs font-bold mt-1 animate-pulse">{preview.lossMessage}</div>}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center text-slate-500 text-[10px] py-2 uppercase tracking-wide">أكمل إدخال الأبناط لحساب النتيجة</div>
-                                        )}
+                                    {/* Real-time Math Preview */}
+                                    <div className="mt-4 flex justify-center items-center gap-3">
+                                        <span className="text-xl font-bold text-emerald-400">{preview.totLana}</span>
+                                        <span className="text-slate-600 text-sm">-</span>
+                                        <span className="text-xl font-bold text-rose-400">{preview.totLahoma}</span>
                                     </div>
-                                </div>
-
-                                <div className="p-5 border-t border-slate-800/80 bg-slate-900 shrink-0 pb-8 sm:pb-5">
-                                    <button onClick={submitRound} disabled={!preview.ready} 
-                                        className={`w-full py-3.5 rounded-xl font-bold text-lg transition-all btn-press flex items-center justify-center gap-2
-                                        ${preview.ready ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-800 text-slate-500 opacity-70 cursor-not-allowed'}`}>
-                                        <i className="fa-solid fa-check"></i> اعتماد النتيجة
-                                    </button>
+                                    {preview.lossMessage && <div className="text-center text-rose-500 text-sm font-bold mt-1 animate-pulse">{preview.lossMessage}</div>}
                                 </div>
                             </div>
-                        </div>
-                    )}
 
-                    {/* Dictionary Modal (Teach AI) */}
-                    {isDictModalOpen && (
-                        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/90 backdrop-blur-md sm:items-center sm:justify-center">
-                            <div className="absolute inset-0 z-0" onClick={() => setIsDictModalOpen(false)}></div>
-                            <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col h-[85dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
-                                
-                                <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
-                                    <h3 className="text-xl font-bold text-white tracking-wide">
-                                        <i className="fa-solid fa-book-open text-blue-500 mr-2"></i> قاموس الذكاء الاصطناعي
-                                    </h3>
-                                    <button onClick={() => setIsDictModalOpen(false)} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
-                                        <i className="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                                    
-                                    {/* View Defaults Toggle */}
-                                    <details className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-3 group">
-                                        <summary className="text-sm font-bold text-slate-300 cursor-pointer outline-none flex justify-between items-center">
-                                            عرض الكلمات الافتراضية
-                                            <i className="fa-solid fa-chevron-down text-xs transition-transform group-open:rotate-180"></i>
-                                        </summary>
-                                        <div className="mt-4 space-y-4">
-                                            <div>
-                                                <h5 className="text-xs font-bold text-blue-400 mb-2 border-b border-slate-700 pb-1">كلمات تحديد الفريق (Targets):</h5>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {Object.keys(DEFAULT_TARGETS).map(word => (
-                                                        <span key={word} className="bg-slate-800 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700">{word}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h5 className="text-xs font-bold text-emerald-400 mb-2 border-b border-slate-700 pb-1">كلمات الأرقام (Numbers):</h5>
-                                                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
-                                                    {Object.keys(DEFAULT_NUMBERS).map(word => (
-                                                        <span key={word} className="bg-slate-800 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700">{word} ({DEFAULT_NUMBERS[word]})</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </details>
-
-                                    {/* Add Word Form */}
-                                    <div className="space-y-3 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
-                                        <h4 className="text-sm font-bold text-blue-400">إضافة كلمة أو لهجة جديدة:</h4>
-                                        <input type="text" placeholder="الكلمة (مثال: طعش)" value={newWord} onChange={e => setNewWord(e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" />
-                                        
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <select value={newMeaningType} onChange={e => {setNewMeaningType(e.target.value); setNewMeaningVal('');}}
-                                                className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none">
-                                                <option value="number">تُعبر عن (رقم)</option>
-                                                <option value="target">تُعبر عن (فريق)</option>
-                                            </select>
-                                            
-                                            {newMeaningType === 'number' ? (
-                                                <input type="number" placeholder="القيمة (0-26)" value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)} max="26" min="0"
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none" />
-                                            ) : (
-                                                <select value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none">
-                                                    <option value="" disabled>اختر الفريق</option>
-                                                    <option value="lana">لنا</option>
-                                                    <option value="lahoma">لهم</option>
-                                                </select>
-                                            )}
-                                        </div>
-                                        <button onClick={handleAddWord} className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition btn-press">
-                                            حفظ الكلمة
-                                        </button>
-                                    </div>
-
-                                    {/* User Custom Words List */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-bold text-slate-400 border-b border-slate-800 pb-2">الكلمات المضافة يدوياً:</h4>
-                                        {Object.keys(customDict.numbers).length === 0 && Object.keys(customDict.targets).length === 0 && (
-                                            <div className="text-slate-600 text-sm text-center py-4">لا توجد كلمات مضافة</div>
-                                        )}
-                                        
-                                        {Object.entries(customDict.numbers).map(([word, val]) => (
-                                            <div key={word} className="flex justify-between items-center bg-slate-800 p-3 rounded-lg">
-                                                <span className="text-white font-bold">{word}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-emerald-400 text-sm font-mono bg-emerald-900/30 px-2 py-1 rounded">رقم: {val}</span>
-                                                    <button onClick={() => handleRemoveWord('numbers', word)} className="text-rose-400 hover:text-rose-300 p-1"><i className="fa-solid fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {Object.entries(customDict.targets).map(([word, val]) => (
-                                            <div key={word} className="flex justify-between items-center bg-slate-800 p-3 rounded-lg">
-                                                <span className="text-white font-bold">{word}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-blue-400 text-sm font-mono bg-blue-900/30 px-2 py-1 rounded">فريق: {val === 'lana' ? 'لنا' : 'لهم'}</span>
-                                                    <button onClick={() => handleRemoveWord('targets', word)} className="text-rose-400 hover:text-rose-300 p-1"><i className="fa-solid fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Import/Export Actions */}
-                                <div className="p-5 border-t border-slate-800/80 bg-slate-900 shrink-0 pb-8 sm:pb-5 grid grid-cols-2 gap-3">
-                                    <button onClick={handleExportDict} className="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center gap-2 btn-press">
-                                        <i className="fa-solid fa-download"></i> تصدير 
-                                    </button>
-                                    <div className="relative">
-                                        <input type="file" accept=".json" onChange={handleImportDict} ref={fileInputRef} className="hidden" />
-                                        <button onClick={() => fileInputRef.current.click()} className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center gap-2 btn-press">
-                                            <i className="fa-solid fa-upload"></i> استيراد
-                                        </button>
-                                    </div>
-                                </div>
+                            {/* Submit Button */}
+                            <div className="p-4 bg-slate-950 shrink-0 pb-8 sm:pb-4 border-t border-slate-800">
+                                <button onClick={submitRound} disabled={!preview.ready} className={`w-full py-4 rounded-xl font-bold text-lg transition-all btn-press flex justify-center items-center gap-2 ${preview.ready ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-800 text-slate-600'}`}>
+                                    {editId ? 'حفظ التعديل' : 'اعتماد النتيجة'} <i className="fa-solid fa-check"></i>
+                                </button>
                             </div>
                         </div>
                     )}

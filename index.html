@@ -93,9 +93,25 @@
             { key: 'baloot', label: 'بلوت' }
         ];
 
+        const DEFAULT_NUMBERS = {
+            "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
+            "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
+            "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
+            "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
+            "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
+            "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
+            "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
+        };
+
+        const DEFAULT_TARGETS = {
+            "لنا": "lana", "إحنا": "lana", "نحن": "lana", "حنا": "lana", "معنا": "lana", "حقنا": "lana", "النا": "lana",
+            "لهم": "lahoma", "هم": "lahoma", "خصم": "lahoma", "ضدهم": "lahoma", "هما": "lahoma", "الهم": "lahoma"
+        };
+
         const App = () => {
             const [history, setHistory] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
+            const [isDictModalOpen, setIsDictModalOpen] = useState(false);
             
             const [form, setForm] = useState({
                 type: 'sun',
@@ -108,160 +124,128 @@
                 pointsLahoma: ''
             });
 
-            // Fast Voice State
+            // Dictionary State
+            const [customDict, setCustomDict] = useState({ numbers: {}, targets: {} });
+            const [newWord, setNewWord] = useState('');
+            const [newMeaningType, setNewMeaningType] = useState('number'); // 'number' | 'target'
+            const [newMeaningVal, setNewMeaningVal] = useState('');
+
+            // Voice State
             const [isListening, setIsListening] = useState(false);
-            const [voiceMode, setVoiceMode] = useState('oneshot'); // 'oneshot' | 'guided'
-            const [voicePrompt, setVoicePrompt] = useState("اضغط المايك للتحدث...");
             const [transcriptLog, setTranscriptLog] = useState("");
+            const [voiceFeedback, setVoiceFeedback] = useState("");
             
             const recognitionRef = useRef(null);
-            const guidedStepRef = useRef('idle'); // idle, type, buyer, points, done
-            const isListeningRef = useRef(false);
+            const fileInputRef = useRef(null);
 
+            // Load Data
             useEffect(() => {
-                const saved = localStorage.getItem('balootProHistoryV6');
-                if (saved) try { setHistory(JSON.parse(saved)); } catch (e) {}
+                const savedHistory = localStorage.getItem('balootProHistoryV7');
+                if (savedHistory) try { setHistory(JSON.parse(savedHistory)); } catch (e) {}
+                
+                const savedDict = localStorage.getItem('balootProDict');
+                if (savedDict) try { setCustomDict(JSON.parse(savedDict)); } catch (e) {}
             }, []);
 
-            useEffect(() => {
-                localStorage.setItem('balootProHistoryV6', JSON.stringify(history));
-            }, [history]);
+            // Save Data
+            useEffect(() => { localStorage.setItem('balootProHistoryV7', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('balootProDict', JSON.stringify(customDict)); }, [customDict]);
 
-            // Setup Fast Silent Voice Recognition
+            // Setup Voice Recognition
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
-                    recognition.continuous = false;
+                    recognition.continuous = false; // Process full utterance at once
                     recognition.interimResults = false;
                     recognition.lang = 'ar-SA'; 
+                    
+                    recognition.onstart = () => {
+                        setIsListening(true);
+                        setVoiceFeedback("تحدث الآن... (مثال: 'لنا عشرة' أو 'لهم 12')");
+                    };
                     
                     recognition.onresult = (event) => {
                         const transcript = event.results[0][0].transcript;
                         setTranscriptLog(transcript);
-                        processTranscript(transcript);
+                        processPointsTranscript(transcript);
                     };
                     
                     recognition.onerror = () => {
-                        if (isListeningRef.current) {
-                            setVoicePrompt(prev => "❌ لم أفهم. كرر لو سمحت: " + prev.split('❌')[0]);
-                            try { recognition.stop(); } catch(e){} // Trigger onend to restart
-                        }
+                        setVoiceFeedback("❌ لم أتمكن من السماع بوضوح.");
+                        setIsListening(false);
                     };
                     
                     recognition.onend = () => {
-                        // Instant silent restart for guided loop
-                        if (isListeningRef.current && guidedStepRef.current !== 'done') {
-                            try { recognition.start(); } catch(e){}
-                        } else {
-                            setIsListening(false);
-                            isListeningRef.current = false;
-                        }
+                        setIsListening(false);
                     };
                     
                     recognitionRef.current = recognition;
                 }
-            }, [voiceMode]);
+            }, [form, customDict]);
 
-            // NLP Engine - Instant state updates
-            const processTranscript = (transcript) => {
+            // NLP Engine for Points Only
+            const processPointsTranscript = (transcript) => {
                 let text = transcript.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
-
-                const isSun = text.match(/(صن|سن|صام|صم|صط|سوم|صون|sun)/);
-                const isHokom = text.match(/(حكم|حقم|هكم|حك|hokom|hakam)/);
-                const isLana = text.match(/(لنا|إحنا|نحن|حنا|معنا|شرينا|اشترينا|حقنا|us|lana)/);
-                const isLahoma = text.match(/(لهم|هم|خصم|ضدهم|هما|خذوها|اشتروها|theirs|them|lahoma)/);
                 
-                const words = {
-                    "صفر":0,"زيرو":0,"واحد":1,"اثنين":2,"ثنين":2,"اتنين":2,"تلاته":3,"ثلاثه":3,"ثلاثة":3,
-                    "اربع":4,"اربعة":4,"اربعه":4,"خمس":5,"خمسه":5,"خمسة":5,"ست":6,"سته":6,"ستة":6,"سبع":7,
-                    "سبعه":7,"سبعة":7,"ثمان":8,"تمان":8,"ثمانيه":8,"ثمانية":8,"تسع":9,"تسعه":9,"تسعة":9,
-                    "عشر":10,"عشره":10,"عشرة":10,"احداعش":11,"ايداعش":11,"حديعش":11,"اثنعش":12,"اطعش":12,
-                    "تلطعش":13,"ثلاثطعش":13,"اربعطعش":14,"خمسطعش":15,"سطعش":16,"ستطعش":16,"سبعطعش":17,
-                    "ثمنطعش":18,"ثمانطعش":18,"تسعطعش":19,"عشرين":20,"واحد وعشرين":21,"اثنين وعشرين":22,
-                    "ثنين وعشرين":22,"ثلاثه وعشرين":23,"اربعة وعشرين":24,"خمسة وعشرين":25,"ستة وعشرين":26
-                };
+                const mergedNums = { ...DEFAULT_NUMBERS, ...customDict.numbers };
+                const mergedTargets = { ...DEFAULT_TARGETS, ...customDict.targets };
 
-                let foundNumber = null;
-                const matches = text.match(/\d+/);
-                if (matches) foundNumber = parseInt(matches[0], 10);
-                else { for (let w in words) { if (text.includes(w)) { foundNumber = words[w]; break; } } }
+                let foundNum = null;
+                let foundTarget = null;
 
-                const stopAndRestart = () => { try { recognitionRef.current.stop(); } catch(e){} };
+                // 1. Direct Digit Match
+                const digitMatch = text.match(/\d+/);
+                if (digitMatch) foundNum = parseInt(digitMatch[0], 10);
 
-                setForm(prev => {
-                    let updates = { ...prev };
-                    
-                    if (guidedStepRef.current === 'oneshot') {
-                        if (isSun) updates.type = 'sun'; else if (isHokom) updates.type = 'hokom';
-                        if (isLana) updates.buyer = 'lana'; else if (isLahoma) updates.buyer = 'lahoma';
-                        if (foundNumber !== null) {
-                            const max = updates.type === 'sun' ? 26 : 16;
-                            if (foundNumber <= max) {
-                                if (isLahoma && !isLana && !text.includes('عطهم')) { updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber; }
-                                else { updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber; }
-                            }
-                        }
-                        guidedStepRef.current = 'done';
-                        setVoicePrompt("✅ تم التقاط الجولة! راجعها واعتمد.");
-                        isListeningRef.current = false;
-                        stopAndRestart();
-                    } 
-                    else if (guidedStepRef.current === 'type') {
-                        if (isSun) { updates.type = 'sun'; guidedStepRef.current = 'buyer'; setVoicePrompt("✅ صن. من المشتري؟ (قل: لنا / لهم)"); stopAndRestart(); }
-                        else if (isHokom) { updates.type = 'hokom'; guidedStepRef.current = 'buyer'; setVoicePrompt("✅ حكم. من المشتري؟ (قل: لنا / لهم)"); stopAndRestart(); }
-                        else { setVoicePrompt("❌ لم أفهم. نوع اللعب؟ (صن / حكم)"); stopAndRestart(); }
+                // 2. Word Match
+                if (foundNum === null) {
+                    for (const [word, val] of Object.entries(mergedNums)) {
+                        if (text.includes(word)) { foundNum = val; break; }
                     }
-                    else if (guidedStepRef.current === 'buyer') {
-                        if (isLana) { updates.buyer = 'lana'; guidedStepRef.current = 'points'; setVoicePrompt("✅ المشتري لنا. كم الأبناط؟ (مثال: 12)"); stopAndRestart(); }
-                        else if (isLahoma) { updates.buyer = 'lahoma'; guidedStepRef.current = 'points'; setVoicePrompt("✅ المشتري لهم. كم الأبناط؟ (مثال: 12)"); stopAndRestart(); }
-                        else { setVoicePrompt("❌ لم أفهم. من المشتري؟ (لنا / لهم)"); stopAndRestart(); }
-                    }
-                    else if (guidedStepRef.current === 'points') {
-                        if (foundNumber !== null) {
-                            const max = updates.type === 'sun' ? 26 : 16;
-                            if (foundNumber <= max) {
-                                if (isLahoma && !isLana) { updates.pointsLahoma = foundNumber; updates.pointsLana = max - foundNumber; }
-                                else { updates.pointsLana = foundNumber; updates.pointsLahoma = max - foundNumber; }
-                                guidedStepRef.current = 'done';
-                                setVoicePrompt("✅ اكتملت! راجع النتيجة واعتمد.");
-                                isListeningRef.current = false;
-                                stopAndRestart();
+                }
+                
+                for (const [word, val] of Object.entries(mergedTargets)) {
+                    if (text.includes(word)) { foundTarget = val; break; }
+                }
+
+                if (foundNum !== null) {
+                    const max = form.type === 'sun' ? 26 : 16;
+                    if (foundNum <= max) {
+                        // Default to the team specified, or fallback to the buyer if ambiguous
+                        const targetTeam = foundTarget || form.buyer;
+                        
+                        setForm(prev => {
+                            let updates = { ...prev };
+                            if (targetTeam === 'lana') {
+                                updates.pointsLana = foundNum;
+                                updates.pointsLahoma = max - foundNum;
                             } else {
-                                setVoicePrompt(`❌ رقم كبير! الحد ${max}. كم الأبناط؟`); stopAndRestart();
+                                updates.pointsLahoma = foundNum;
+                                updates.pointsLana = max - foundNum;
                             }
-                        } else {
-                            setVoicePrompt("❌ لم أسمع رقماً. كم الأبناط؟"); stopAndRestart();
-                        }
+                            return updates;
+                        });
+                        setVoiceFeedback(`✅ تم تسجيل ${foundNum} لفريق ${targetTeam === 'lana' ? 'لنا' : 'لهم'}`);
+                    } else {
+                        setVoiceFeedback(`❌ الرقم ${foundNum} يتجاوز الحد الأقصى (${max})`);
                     }
-                    return updates;
-                });
+                } else {
+                    setVoiceFeedback("❌ لم أتمكن من التقاط عدد الأبناط من كلامك.");
+                }
             };
 
             const toggleListening = () => {
                 if (!recognitionRef.current) return alert("المتصفح لا يدعم التعرف على الصوت.");
-                
-                if (isListeningRef.current) {
-                    isListeningRef.current = false;
-                    setIsListening(false);
-                    guidedStepRef.current = 'idle';
-                    setVoicePrompt("تم الإيقاف.");
-                    try { recognitionRef.current.stop(); } catch(e){}
+                if (isListening) {
+                    recognitionRef.current.stop();
                 } else {
-                    isListeningRef.current = true;
-                    setIsListening(true);
                     setTranscriptLog("");
-                    if (voiceMode === 'oneshot') {
-                        guidedStepRef.current = 'oneshot';
-                        setVoicePrompt("تحدث الآن: (المشتري، نوع اللعب، الأبناط. مثال: لنا صن والأبناط 12)");
-                    } else {
-                        guidedStepRef.current = 'type';
-                        setVoicePrompt("نوع اللعب؟ (قل: صن أو حكم)");
-                    }
-                    try { recognitionRef.current.start(); } catch(e){}
+                    recognitionRef.current.start();
                 }
             };
 
+            // Manual Form Handlers
             const handlePointsChange = (team, value) => {
                 const val = parseInt(value) || 0;
                 const max = form.type === 'sun' ? 26 : 16;
@@ -345,7 +329,6 @@
                 
                 setHistory([{ id: Date.now(), lana: results.totLana, lahoma: results.totLahoma, details: form.type === 'sun' ? 'صن' : 'حكم' }, ...history]);
                 setIsModalOpen(false);
-                isListeningRef.current = false;
                 setIsListening(false);
                 try { recognitionRef.current.stop(); } catch(e){}
                 
@@ -358,11 +341,65 @@
 
             const resetGame = () => { if (window.confirm("تصفير النتيجة والبدء من جديد؟")) setHistory([]); };
 
+            // Dictionary Handlers
+            const handleAddWord = () => {
+                if (!newWord.trim() || newMeaningVal === '') return;
+                setCustomDict(prev => {
+                    const newDict = { ...prev };
+                    if (newMeaningType === 'number') {
+                        newDict.numbers = { ...newDict.numbers, [newWord.toLowerCase()]: parseInt(newMeaningVal, 10) };
+                    } else {
+                        newDict.targets = { ...newDict.targets, [newWord.toLowerCase()]: newMeaningVal };
+                    }
+                    return newDict;
+                });
+                setNewWord('');
+                setNewMeaningVal('');
+            };
+
+            const handleRemoveWord = (type, word) => {
+                setCustomDict(prev => {
+                    const newDict = { ...prev };
+                    const newGroup = { ...newDict[type] };
+                    delete newGroup[word];
+                    newDict[type] = newGroup;
+                    return newDict;
+                });
+            };
+
+            const handleExportDict = () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customDict));
+                const anchor = document.createElement('a');
+                anchor.setAttribute("href", dataStr);
+                anchor.setAttribute("download", "baloot_dictionary.json");
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+            };
+
+            const handleImportDict = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.numbers !== undefined || data.targets !== undefined) {
+                            setCustomDict(data);
+                            alert("تم استيراد القاموس بنجاح!");
+                        } else {
+                            alert("تنسيق الملف غير صالح.");
+                        }
+                    } catch(err) { alert("حدث خطأ أثناء قراءة الملف."); }
+                };
+                reader.readAsText(file);
+                e.target.value = ''; // reset
+            };
+
             const totalLana = history.reduce((acc, curr) => acc + curr.lana, 0);
             const totalLahoma = history.reduce((acc, curr) => acc + curr.lahoma, 0);
             const preview = calculateResults();
             
-            // Grand Total Calculation for Display Label
             const maxAbnat = form.type === 'sun' ? 26 : 16;
             const totalLanaProj = calculateProjectPoints('lana', form.type);
             const totalLahomaProj = calculateProjectPoints('lahoma', form.type);
@@ -404,7 +441,7 @@
                     </div>
 
                     <div className="px-5 pb-5 shrink-0 z-10">
-                        <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); setVoicePrompt("اضغط المايك للتحدث..."); isListeningRef.current = false; setIsListening(false); }} 
+                        <button onClick={() => { setIsModalOpen(true); setTranscriptLog(""); setVoiceFeedback(""); }} 
                             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg btn-press shadow-lg shadow-blue-900/30 flex items-center justify-center">
                             <i className="fa-solid fa-plus mr-2"></i> تسجيل جولة
                         </button>
@@ -433,27 +470,32 @@
                         </div>
                     </div>
 
+                    {/* Main Entry Modal */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm sm:items-center sm:justify-center">
-                            <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); isListeningRef.current = false; setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}}></div>
+                        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm sm:items-center sm:justify-center">
+                            <div className="absolute inset-0 z-0" onClick={() => {setIsModalOpen(false); setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}}></div>
                             <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[92dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
                                 
                                 <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
                                     <h3 className="text-xl font-bold text-white tracking-wide">تسجيل النتيجة</h3>
-                                    <button onClick={() => {setIsModalOpen(false); isListeningRef.current = false; setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
-                                        <i className="fa-solid fa-xmark"></i>
-                                    </button>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setIsDictModalOpen(true)} className="text-blue-400 hover:text-white bg-blue-900/30 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
+                                            <i className="fa-solid fa-book"></i>
+                                        </button>
+                                        <button onClick={() => {setIsModalOpen(false); setIsListening(false); try{recognitionRef.current.stop();}catch(e){}}} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
+                                            <i className="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
                                     
-                                    {/* Projects Section - STRICTLY MANUAL & FIRST */}
+                                    {/* 1. Projects Section */}
                                     <div className="space-y-4 bg-slate-950/30 p-3 rounded-2xl border border-slate-800">
                                         <div className="text-center text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide border-b border-slate-800 pb-2">
-                                            أدخل المشاريع يدوياً أولاً (إن وجدت)
+                                            أولاً: المشاريع إن وجدت
                                         </div>
                                         
-                                        {/* Lana Projects */}
                                         <div>
                                             <div className="flex items-center justify-between mb-2 ml-1">
                                                 <label className="text-xs text-slate-400 font-bold">مشاريعنا (لنا): {calculateProjectPoints('lana', form.type) > 0 && <span className="text-emerald-400 ml-1">+{calculateProjectPoints('lana', form.type)} بنط</span>}</label>
@@ -464,8 +506,7 @@
                                                     return (
                                                         <button key={'lana'+p.key} onClick={() => handleProjectClick('lana', p.key)} 
                                                             className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
-                                                            {p.label}
-                                                            {count > 0 && <span className="badge">{count}</span>}
+                                                            {p.label} {count > 0 && <span className="badge">{count}</span>}
                                                         </button>
                                                     );
                                                 })}
@@ -475,7 +516,6 @@
                                             </div>
                                         </div>
 
-                                        {/* Lahoma Projects */}
                                         <div>
                                             <div className="flex items-center justify-between mb-2 ml-1">
                                                 <label className="text-xs text-slate-400 font-bold">مشاريعهم (لهم): {calculateProjectPoints('lahoma', form.type) > 0 && <span className="text-rose-400 ml-1">+{calculateProjectPoints('lahoma', form.type)} بنط</span>}</label>
@@ -486,8 +526,7 @@
                                                     return (
                                                         <button key={'lahoma'+p.key} onClick={() => handleProjectClick('lahoma', p.key)} 
                                                             className={`chip px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 ${count > 0 ? 'active' : ''}`}>
-                                                            {p.label}
-                                                            {count > 0 && <span className="badge">{count}</span>}
+                                                            {p.label} {count > 0 && <span className="badge">{count}</span>}
                                                         </button>
                                                     );
                                                 })}
@@ -498,43 +537,17 @@
                                         </div>
                                     </div>
 
-                                    {/* AI Silent Guided Assistant */}
-                                    <div className="bg-slate-800/50 rounded-2xl p-3 border border-blue-900/40 relative overflow-hidden flex flex-col gap-3">
-                                        {isListening && <div className="absolute top-0 left-0 w-full h-0.5 bg-emerald-500 animate-pulse"></div>}
-                                        
-                                        {/* Mode Toggle */}
-                                        <div className="flex bg-slate-950/50 rounded-lg p-1 border border-slate-800">
-                                            <button onClick={() => { setVoiceMode('oneshot'); setVoicePrompt("اضغط المايك للتحدث..."); }} className={`flex-1 py-1.5 rounded text-xs font-bold transition-all ${voiceMode === 'oneshot' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>سرد كامل</button>
-                                            <button onClick={() => { setVoiceMode('guided'); setVoicePrompt("اضغط المايك للتحدث..."); }} className={`flex-1 py-1.5 rounded text-xs font-bold transition-all ${voiceMode === 'guided' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>خطوة بخطوة</button>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <button onClick={toggleListening} 
-                                                className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl transition-colors btn-press ${isListening ? 'bg-rose-600 text-white shadow-[0_0_10px_#e11d48]' : 'bg-blue-600 text-white shadow-[0_0_10px_#2563eb]'}`}>
-                                                <i className={`fa-solid ${isListening ? 'fa-stop' : 'fa-microphone'}`}></i>
-                                            </button>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-yellow-300 font-bold leading-tight">{voicePrompt}</p>
-                                            </div>
-                                        </div>
-                                        {transcriptLog && (
-                                            <div className="bg-black/40 rounded-lg px-3 py-2 border border-slate-700/50">
-                                                <span className="text-emerald-400 text-xs font-mono">{transcriptLog}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Type & Buyer Toggles */}
+                                    {/* 2. Type & Buyer Toggles */}
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs text-slate-400 font-bold ml-1">اللعب:</label>
+                                            <label className="text-xs text-slate-400 font-bold ml-1">ثانياً: اللعب</label>
                                             <div className="flex bg-slate-950/50 rounded-xl p-1 border border-slate-800">
                                                 <button onClick={() => handleTypeChange('sun')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.type === 'sun' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>صن</button>
                                                 <button onClick={() => handleTypeChange('hokom')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.type === 'hokom' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500'}`}>حكم</button>
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs text-slate-400 font-bold ml-1">المشتري:</label>
+                                            <label className="text-xs text-slate-400 font-bold ml-1">المشتري</label>
                                             <div className="flex bg-slate-950/50 rounded-xl p-1 border border-slate-800">
                                                 <button onClick={() => setForm({...form, buyer: 'lana'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.buyer === 'lana' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500'}`}>لنا</button>
                                                 <button onClick={() => setForm({...form, buyer: 'lahoma'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${form.buyer === 'lahoma' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-500'}`}>لهم</button>
@@ -542,22 +555,42 @@
                                         </div>
                                     </div>
 
-                                    {/* Points Input */}
-                                    <div>
-                                        <label className="text-xs text-slate-300 font-bold mb-2 block ml-1 bg-slate-800 inline-block px-3 py-1 rounded-full border border-slate-700">
-                                            الأبناط (المجموع الكلي مع المشاريع: <span className="text-white">{grandTotalPoints}</span>)
+                                    {/* 3. Points Input & Voice Recognition */}
+                                    <div className="space-y-3">
+                                        <label className="text-xs text-slate-300 font-bold ml-1 bg-slate-800 inline-block px-3 py-1 rounded-full border border-slate-700">
+                                            ثالثاً: الأبناط (المجموع الكلي: <span className="text-white">{grandTotalPoints}</span>)
                                         </label>
-                                        <div className="grid grid-cols-2 gap-3 mt-1">
-                                            <div className="relative">
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لنا</span>
-                                                <input type="number" value={form.pointsLana} onChange={(e) => handlePointsChange('lana', e.target.value)}
-                                                    className="w-full bg-slate-950/50 border border-slate-700 rounded-xl py-3 pr-10 pl-3 text-xl font-black text-center text-white focus:outline-none focus:border-emerald-500 transition-colors" placeholder="0" />
+                                        
+                                        <div className="bg-slate-950/30 p-3 rounded-2xl border border-slate-800 relative">
+                                            <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-center">
+                                                <div className="relative">
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لنا</span>
+                                                    <input type="number" value={form.pointsLana} onChange={(e) => handlePointsChange('lana', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pr-9 pl-2 text-xl font-black text-center text-white focus:outline-none focus:border-emerald-500 transition-colors" placeholder="0" />
+                                                </div>
+                                                
+                                                {/* Floating Mic for Points */}
+                                                <button onClick={toggleListening} 
+                                                    className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all btn-press shadow-lg z-10 
+                                                    ${isListening ? 'bg-rose-600 text-white shadow-[0_0_20px_#e11d48] scale-110 animate-pulse' : 'bg-blue-600 text-white shadow-blue-900/50'}`}>
+                                                    <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'}`}></i>
+                                                </button>
+
+                                                <div className="relative">
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لهم</span>
+                                                    <input type="number" value={form.pointsLahoma} onChange={(e) => handlePointsChange('lahoma', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pr-9 pl-2 text-xl font-black text-center text-white focus:outline-none focus:border-rose-500 transition-colors" placeholder="0" />
+                                                </div>
                                             </div>
-                                            <div className="relative">
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">لهم</span>
-                                                <input type="number" value={form.pointsLahoma} onChange={(e) => handlePointsChange('lahoma', e.target.value)}
-                                                    className="w-full bg-slate-950/50 border border-slate-700 rounded-xl py-3 pr-10 pl-3 text-xl font-black text-center text-white focus:outline-none focus:border-rose-500 transition-colors" placeholder="0" />
-                                            </div>
+
+                                            {/* Voice Log */}
+                                            {(transcriptLog || voiceFeedback) && (
+                                                <div className="mt-4 pt-3 border-t border-slate-800/50">
+                                                    <p className="text-[10px] text-slate-500 mb-1 font-bold">سجل المساعد الصوتي:</p>
+                                                    {transcriptLog && <p className="text-xs font-mono text-emerald-400 mb-1">"{transcriptLog}"</p>}
+                                                    {voiceFeedback && <p className={`text-xs font-bold ${voiceFeedback.includes('✅') ? 'text-blue-300' : 'text-rose-400'}`}>{voiceFeedback}</p>}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     
@@ -584,6 +617,100 @@
                                         ${preview.ready ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-800 text-slate-500 opacity-70 cursor-not-allowed'}`}>
                                         <i className="fa-solid fa-check"></i> اعتماد النتيجة
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Dictionary Modal (Teach AI) */}
+                    {isDictModalOpen && (
+                        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/90 backdrop-blur-md sm:items-center sm:justify-center">
+                            <div className="absolute inset-0 z-0" onClick={() => setIsDictModalOpen(false)}></div>
+                            <div className="relative z-10 w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl flex flex-col h-[85dvh] animate-slide-up shadow-2xl border-t border-slate-700/50 sm:border">
+                                
+                                <div className="flex justify-between items-center p-5 border-b border-slate-800/80 shrink-0 bg-slate-900 rounded-t-3xl">
+                                    <h3 className="text-xl font-bold text-white tracking-wide">
+                                        <i className="fa-solid fa-book-open text-blue-500 mr-2"></i> قاموس الذكاء الاصطناعي
+                                    </h3>
+                                    <button onClick={() => setIsDictModalOpen(false)} className="text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center transition btn-press">
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 text-sm text-slate-300">
+                                        يحتوي المساعد الصوتي مسبقاً على معظم الكلمات لعد الأبناط. إذا كانت هناك كلمة أو لهجة لا يفهمها، يمكنك إضافتها هنا.
+                                    </div>
+
+                                    {/* Add Word Form */}
+                                    <div className="space-y-3 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                                        <h4 className="text-sm font-bold text-blue-400">إضافة كلمة جديدة:</h4>
+                                        <input type="text" placeholder="الكلمة (مثال: طعش)" value={newWord} onChange={e => setNewWord(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" />
+                                        
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <select value={newMeaningType} onChange={e => {setNewMeaningType(e.target.value); setNewMeaningVal('');}}
+                                                className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none">
+                                                <option value="number">تُعبر عن (رقم)</option>
+                                                <option value="target">تُعبر عن (فريق)</option>
+                                            </select>
+                                            
+                                            {newMeaningType === 'number' ? (
+                                                <input type="number" placeholder="القيمة (0-26)" value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)} max="26" min="0"
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none" />
+                                            ) : (
+                                                <select value={newMeaningVal} onChange={e => setNewMeaningVal(e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none">
+                                                    <option value="" disabled>اختر الفريق</option>
+                                                    <option value="lana">لنا</option>
+                                                    <option value="lahoma">لهم</option>
+                                                </select>
+                                            )}
+                                        </div>
+                                        <button onClick={handleAddWord} className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition btn-press">
+                                            حفظ الكلمة
+                                        </button>
+                                    </div>
+
+                                    {/* Words List */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-bold text-slate-400 border-b border-slate-800 pb-2">الكلمات المضافة يدوياً:</h4>
+                                        {Object.keys(customDict.numbers).length === 0 && Object.keys(customDict.targets).length === 0 && (
+                                            <div className="text-slate-600 text-sm text-center py-4">لا توجد كلمات مضافة</div>
+                                        )}
+                                        
+                                        {Object.entries(customDict.numbers).map(([word, val]) => (
+                                            <div key={word} className="flex justify-between items-center bg-slate-800 p-3 rounded-lg">
+                                                <span className="text-white font-bold">{word}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-emerald-400 text-sm font-mono bg-emerald-900/30 px-2 py-1 rounded">رقم: {val}</span>
+                                                    <button onClick={() => handleRemoveWord('numbers', word)} className="text-rose-400 hover:text-rose-300 p-1"><i className="fa-solid fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {Object.entries(customDict.targets).map(([word, val]) => (
+                                            <div key={word} className="flex justify-between items-center bg-slate-800 p-3 rounded-lg">
+                                                <span className="text-white font-bold">{word}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-blue-400 text-sm font-mono bg-blue-900/30 px-2 py-1 rounded">فريق: {val === 'lana' ? 'لنا' : 'لهم'}</span>
+                                                    <button onClick={() => handleRemoveWord('targets', word)} className="text-rose-400 hover:text-rose-300 p-1"><i className="fa-solid fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Dictionary Actions (Export/Import) */}
+                                <div className="p-5 border-t border-slate-800/80 bg-slate-900 shrink-0 pb-8 sm:pb-5 grid grid-cols-2 gap-3">
+                                    <button onClick={handleExportDict} className="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center gap-2 btn-press">
+                                        <i className="fa-solid fa-download"></i> تصدير 
+                                    </button>
+                                    <div className="relative">
+                                        <input type="file" accept=".json" onChange={handleImportDict} ref={fileInputRef} className="hidden" />
+                                        <button onClick={() => fileInputRef.current.click()} className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center gap-2 btn-press">
+                                            <i className="fa-solid fa-upload"></i> استيراد
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
